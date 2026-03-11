@@ -8,3 +8,6 @@ redis
 celery
 httpx
 openai
+requests
+beautifulsoup4
+playwright

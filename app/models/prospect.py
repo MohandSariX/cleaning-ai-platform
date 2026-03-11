@@ -12,9 +12,11 @@ class Prospect(Base):
 
     email = Column(String)
     phone = Column(String)
+    city = Column(String)
 
     address = Column(String)
 
     lead_score = Column(Float, default=0)
 
     status = Column(String, default="new")
+    
