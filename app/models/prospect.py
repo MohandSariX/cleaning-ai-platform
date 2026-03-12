@@ -26,7 +26,6 @@ class Prospect(Base):
     score_explanation = Column(Text)
 
     # Statut pipeline
-    # new | scored | email_generated | contacted | replied | signed | lost
     status = Column(String, default="new")
 
     # Timestamps
