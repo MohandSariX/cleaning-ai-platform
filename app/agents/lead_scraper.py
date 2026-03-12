@@ -98,7 +98,8 @@ def run_lead_scraper(query="nettoyage", locations=None, max_pages=3):
             phone=details.get("phone"),
             address=details.get("address"),
             email=email,
-            status="new"
+            status="new",
+            website=details.get("website")
         )
 
         db.add(prospect)

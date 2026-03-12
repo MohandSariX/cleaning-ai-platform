@@ -10,12 +10,9 @@ QUERY = "nettoyage"
 
 LOCATIONS = [
     "Saint-Maur-des-Fossés",
-    "Joinville-le-Pont",
-    "Champigny-sur-Marne",
-    "Chennevières-sur-Marne",
 ]
 
-MAX_PAGES = 3   # ~20 résultats/page → 3 pages × 11 villes = ~660 prospects max
+MAX_PAGES = 1   # ~20 résultats/page → 3 pages × 11 villes = ~660 prospects max
 
 # ============================================================
 
