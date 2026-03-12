@@ -1,14 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import prospects
 from app.core.database import Base, engine
-from app.models import prospect
+from app.models import prospect, client, devis, chantier, facture
+from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Proprexis CRM")
 
-# CORS — autorise Next.js (port 3000) à appeler l'API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -16,8 +15,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routes API préfixées /api
-app.include_router(prospects.router, prefix="/api")
+app.include_router(api_prospects.router, prefix="/api")
+app.include_router(api_clients.router,   prefix="/api")
+app.include_router(api_devis.router,     prefix="/api")
+app.include_router(api_chantier.router, prefix="/api")
+app.include_router(api_factures.router,  prefix="/api")
+
 
 @app.get("/")
 def root():

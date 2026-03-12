@@ -48,3 +48,46 @@ export async function updateProspect(id: number, data: Record<string, unknown>) 
   if (!res.ok) throw new Error('Failed to update prospect')
   return res.json()
 }
+
+// ── Clients ─────────────────────────────────────────────────
+
+export async function fetchClients(params?: { status?: string; search?: string }) {
+  const url = new URL(`${API}/api/clients`)
+  if (params?.status) url.searchParams.set('status', params.status)
+  if (params?.search) url.searchParams.set('search', params.search)
+  const res = await fetch(url.toString(), { cache: 'no-store' })
+  if (!res.ok) throw new Error('Failed to fetch clients')
+  return res.json()
+}
+
+export async function fetchClient(id: number) {
+  const res = await fetch(`${API}/api/clients/${id}`, { cache: 'no-store' })
+  if (!res.ok) throw new Error('Failed to fetch client')
+  return res.json()
+}
+
+export async function createClient(data: Record<string, unknown>) {
+  const res = await fetch(`${API}/api/clients`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to create client')
+  return res.json()
+}
+
+export async function updateClient(id: number, data: Record<string, unknown>) {
+  const res = await fetch(`${API}/api/clients/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to update client')
+  return res.json()
+}
+
+export async function fetchClientsStats() {
+  const res = await fetch(`${API}/api/clients/stats/summary`, { cache: 'no-store' })
+  if (!res.ok) throw new Error('Failed to fetch clients stats')
+  return res.json()
+}
