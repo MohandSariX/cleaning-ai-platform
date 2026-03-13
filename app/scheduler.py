@@ -1,0 +1,231 @@
+"""
+Scheduler Proprexis — Agent de prospection automatique
+Tourne en arrière-plan avec FastAPI (APScheduler)
+
+Planning hebdomadaire à 23h00 :
+  Lundi     → Villes du 94 (Val-de-Marne)
+  Mardi     → Villes du 93 (Seine-Saint-Denis)
+  Mercredi  → Villes du 92 (Hauts-de-Seine)
+  Jeudi     → Villes du 77 (Seine-et-Marne)
+  Vendredi  → Villes du 75 (Paris)
+  Samedi    → Villes du 91 (Essonne)
+  Dimanche  → Villes du 78 (Yvelines)
+"""
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime
+from app.agents.lead_scraper import run_lead_scraper
+from app.agents.lead_scorer import run_lead_scoring
+import logging
+
+logger = logging.getLogger("proprexis.scheduler")
+
+# ══════════════════════════════════════════════════════════════
+#  CONFIGURATION DES ZONES
+# ══════════════════════════════════════════════════════════════
+
+ZONES = {
+    "94": [  # Val-de-Marne — Lundi
+        "Créteil", "Vincennes", "Saint-Maur-des-Fossés", "Champigny-sur-Marne",
+        "Ivry-sur-Seine", "Vitry-sur-Seine", "Charenton-le-Pont", "Alfortville",
+        "Maisons-Alfort", "Joinville-le-Pont", "Nogent-sur-Marne", "Fontenay-sous-Bois",
+        "Sucy-en-Brie", "Boissy-Saint-Léger", "Orly", "Thiais", "Rungis",
+        "Chennevières-sur-Marne", "Villiers-sur-Marne", "Le Perreux-sur-Marne",
+        "Bonneuil-sur-Marne", "Choisy-le-Roi", "L'Haÿ-les-Roses", "Gentilly",
+    ],
+    "93": [  # Seine-Saint-Denis — Mardi
+        "Saint-Denis", "Montreuil", "Aubervilliers", "Noisy-le-Grand",
+        "Aulnay-sous-Bois", "Vitry-le-François", "Pantin", "Épinay-sur-Seine",
+        "Bobigny", "Rosny-sous-Bois", "Drancy", "Livry-Gargan",
+        "Le Blanc-Mesnil", "Neuilly-sur-Marne", "Gagny", "Bondy",
+        "Noisy-le-Sec", "Romainville", "Les Lilas", "Bagnolet",
+        "Saint-Ouen-sur-Seine", "La Courneuve", "Stains", "Villepinte",
+    ],
+    "92": [  # Hauts-de-Seine — Mercredi
+        "Nanterre", "Boulogne-Billancourt", "Colombes", "Asnières-sur-Seine",
+        "Courbevoie", "Rueil-Malmaison", "Issy-les-Moulineaux", "Levallois-Perret",
+        "Neuilly-sur-Seine", "Clichy", "Clamart", "Antony",
+        "Châtenay-Malabry", "Sceaux", "Bagneux", "Montrouge",
+        "Vanves", "Malakoff", "Châtillon", "Meudon",
+        "Garches", "Vaucresson", "La Garenne-Colombes", "Gennevilliers",
+    ],
+    "77": [  # Seine-et-Marne — Jeudi (villes proches de Champigny-sur-Marne)
+        "Chelles", "Lagny-sur-Marne", "Torcy", "Noisiel",
+        "Lognes", "Pontault-Combault", "Roissy-en-Brie", "Bussy-Saint-Georges",
+        "Montévrain", "Chessy", "Ozoir-la-Ferrière", "Noisy-le-Grand",
+        "Neuilly-sur-Marne", "Gagny", "Le Perreux-sur-Marne", "Villiers-sur-Marne",
+        "Gournay-sur-Marne", "Emerainville", "Croissy-Beaubourg", "Gouvernes",
+    ],
+    "75": ["Paris"],  # Paris — Vendredi (une seule recherche, Pages Jaunes couvre tout)
+    "91": [  # Essonne — Samedi
+        "Évry-Courcouronnes", "Corbeil-Essonnes", "Massy", "Palaiseau",
+        "Igny", "Longjumeau", "Juvisy-sur-Orge", "Viry-Châtillon",
+        "Sainte-Geneviève-des-Bois", "Gif-sur-Yvette", "Les Ulis", "Orsay",
+        "Brunoy", "Montgeron", "Yerres", "Draveil",
+        "Grigny", "Ris-Orangis", "Athis-Mons", "Morangis",
+    ],
+    "78": [],  # Yvelines — retiré (trop loin)
+}
+
+# Types d'entreprises à scraper (requêtes Pages Jaunes)
+QUERY_TYPES = [
+    "construction batiment",
+    "promoteur immobilier",
+    "agence immobiliere",
+    "syndic copropriete",
+    "architecte",
+    "renovation travaux",
+]
+
+# Pages par ville selon le département (Paris limité car très dense)
+MAX_PAGES_DEFAULT = 20
+MAX_PAGES_PARIS   = 50
+
+# ── Mode test — passe à True pour un run rapide (1 ville, 1 type, 2 pages) ──
+TEST_MODE = False
+TEST_CITY  = "Créteil"
+TEST_QUERY = "construction batiment"
+TEST_PAGES = 2
+
+# Mapping jour → département
+DAY_TO_DEPT = {
+    0: "94",  # Lundi
+    1: "93",  # Mardi
+    2: "92",  # Mercredi
+    3: "77",  # Jeudi
+    4: "75",  # Vendredi
+    5: "91",  # Samedi
+    6: "94",  # Dimanche (2ème passage Val-de-Marne — priorité zone)
+}
+
+# ══════════════════════════════════════════════════════════════
+#  ÉTAT DU SCHEDULER (exposé via API)
+# ══════════════════════════════════════════════════════════════
+
+scheduler_status = {
+    "running": False,
+    "current_dept": None,
+    "current_query": None,
+    "current_city": None,
+    "log": [],
+    "last_run": None,
+    "next_run": None,
+    "stats": {
+        "total_scraped_session": 0,
+        "queries_done": 0,
+        "queries_total": 0,
+    }
+}
+
+
+def _log(msg: str):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    line = f"[{timestamp}] {msg}"
+    logger.info(line)
+    scheduler_status["log"].append(line)
+    # Garder seulement les 200 dernières lignes
+    if len(scheduler_status["log"]) > 200:
+        scheduler_status["log"] = scheduler_status["log"][-200:]
+
+
+def run_nightly_scrape():
+    """
+    Tâche principale — lancée automatiquement chaque soir à 23h.
+    Détermine le département du jour et scrape tous les types d'entreprises.
+    """
+    day_of_week = datetime.now().weekday()
+    dept = DAY_TO_DEPT[day_of_week]
+    cities = ZONES[dept]
+    day_names = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+
+    scheduler_status["running"] = True
+    scheduler_status["current_dept"] = dept
+    scheduler_status["last_run"] = datetime.now().isoformat()
+    scheduler_status["stats"] = {
+        "total_scraped_session": 0,
+        "queries_done": 0,
+        "queries_total": len(QUERY_TYPES) * len(cities),
+    }
+
+    _log(f"🚀 Démarrage scraping nuit — {day_names[day_of_week]} | Département {dept}")
+    _log(f"   {len(cities)} villes × {len(QUERY_TYPES)} types = {len(cities) * len(QUERY_TYPES)} combinaisons")
+    pages_info = MAX_PAGES_PARIS if dept == "75" else MAX_PAGES_DEFAULT
+    _log(f"   {pages_info} pages max par combinaison")
+
+    # Mode test — run rapide pour vérifier le pipeline
+    if TEST_MODE:
+        _log("⚠️  MODE TEST — 1 ville, 1 type, 2 pages")
+        active_queries = [TEST_QUERY]
+        active_cities  = [TEST_CITY]
+        active_pages   = TEST_PAGES
+    else:
+        active_queries = QUERY_TYPES
+        active_cities  = cities
+        active_pages   = MAX_PAGES_PARIS if dept == "75" else MAX_PAGES_DEFAULT
+
+    try:
+        for query in active_queries:
+            scheduler_status["current_query"] = query
+            _log(f"\n📂 Type : « {query} »")
+
+            for city in active_cities:
+                scheduler_status["current_city"] = city
+                _log(f"   🏙 {city}...")
+                try:
+                    run_lead_scraper(
+                        query=query,
+                        locations=[city],
+                        max_pages=active_pages
+                    )
+                    scheduler_status["stats"]["queries_done"] += 1
+                except Exception as e:
+                    _log(f"   ⚠️ Erreur {city}/{query} : {str(e)[:80]}")
+
+        _log("\n⚙️ Scoring de tous les nouveaux prospects...")
+        run_lead_scoring()
+        _log("✅ Scoring terminé")
+        _log(f"🎉 Nuit terminée ! Dept {dept} complet.")
+
+    except Exception as e:
+        _log(f"❌ Erreur critique : {str(e)}")
+    finally:
+        scheduler_status["running"] = False
+        scheduler_status["current_dept"] = None
+        scheduler_status["current_query"] = None
+        scheduler_status["current_city"] = None
+
+
+# ══════════════════════════════════════════════════════════════
+#  INITIALISATION DU SCHEDULER
+# ══════════════════════════════════════════════════════════════
+
+_scheduler = BackgroundScheduler(timezone="Europe/Paris")
+
+
+def start_scheduler():
+    """Démarre le scheduler APScheduler — appelé au démarrage de FastAPI."""
+    _scheduler.add_job(
+        run_nightly_scrape,
+        trigger=CronTrigger(hour=23, minute=0, timezone="Europe/Paris"),
+        id="nightly_scrape",
+        replace_existing=True,
+    )
+    _scheduler.start()
+
+    next_job = _scheduler.get_job("nightly_scrape")
+    if next_job:
+        scheduler_status["next_run"] = str(next_job.next_run_time)
+
+    logger.info("✅ Scheduler Proprexis démarré — scraping nightly à 23h00")
+
+
+def stop_scheduler():
+    """Arrête proprement le scheduler — appelé à l'arrêt de FastAPI."""
+    if _scheduler.running:
+        _scheduler.shutdown(wait=False)
+        logger.info("Scheduler arrêté")
+
+
+def get_scheduler():
+    return _scheduler
