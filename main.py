@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine
 from app.models import prospect, client, devis, chantier, facture
-from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler
+from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler, api_watchdog
 
 load_dotenv()
 
@@ -25,6 +25,7 @@ app.include_router(api_chantier.router, prefix="/api")
 app.include_router(api_factures.router,  prefix="/api")
 app.include_router(api_scraping.router,  prefix="/api")
 app.include_router(api_scheduler.router,  prefix="/api")
+app.include_router(api_watchdog.router,  prefix="/api")
 
 
 
