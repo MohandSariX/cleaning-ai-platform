@@ -17,6 +17,9 @@ from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 from app.agents.lead_scraper import run_lead_scraper
 from app.agents.lead_scorer import run_lead_scoring
+from app.agents.watchdog import run_watchdog
+from app.agents.telegram_notifier import notify_scraping_termine, notify_prospects_nuit
+from app.agents.gmail_agent import check_inbox
 import logging
 
 logger = logging.getLogger("proprexis.scheduler")
@@ -187,6 +190,34 @@ def run_nightly_scrape():
         _log("✅ Scoring terminé")
         _log(f"🎉 Nuit terminée ! Dept {dept} complet.")
 
+        # Notification Telegram fin de scraping
+        dept_names = {
+            "94": "Val-de-Marne", "93": "Seine-Saint-Denis", "92": "Hauts-de-Seine",
+            "77": "Seine-et-Marne", "75": "Paris", "91": "Essonne",
+        }
+        notify_scraping_termine(dept, dept_names.get(dept, dept), scheduler_status["stats"])
+
+        # Notification nouveaux prospects haute priorité
+        from app.core.database import SessionLocal
+        from app.models.prospect import Prospect as ProspectModel
+        from datetime import timedelta
+        db = SessionLocal()
+        try:
+            hier = datetime.now() - timedelta(hours=8)
+            nouveaux = db.query(ProspectModel).filter(
+                ProspectModel.lead_score >= 70,
+                ProspectModel.status == "scored",
+                ProspectModel.created_at >= hier
+            ).order_by(ProspectModel.lead_score.desc()).limit(10).all()
+            if nouveaux:
+                notify_prospects_nuit([{
+                    "company_name": p.company_name,
+                    "city": p.city,
+                    "lead_score": p.lead_score,
+                } for p in nouveaux])
+        finally:
+            db.close()
+
     except Exception as e:
         _log(f"❌ Erreur critique : {str(e)}")
     finally:
@@ -205,13 +236,32 @@ _scheduler = BackgroundScheduler(timezone="Europe/Paris")
 
 def start_scheduler():
     """Démarre le scheduler APScheduler — appelé au démarrage de FastAPI."""
+    # Job 1 — Scraping nightly à 23h00
     _scheduler.add_job(
         run_nightly_scrape,
         trigger=CronTrigger(hour=23, minute=0, timezone="Europe/Paris"),
         id="nightly_scrape",
         replace_existing=True,
     )
+
+    # Job 2 — Watchdog toutes les heures
+    _scheduler.add_job(
+        run_watchdog,
+        trigger=CronTrigger(minute=0, timezone="Europe/Paris"),
+        id="watchdog_hourly",
+        replace_existing=True,
+    )
+
+    # Job 3 — Vérification boîte Gmail toutes les 15 minutes
+    _scheduler.add_job(
+        check_inbox,
+        trigger=CronTrigger(minute="*/15", timezone="Europe/Paris"),
+        id="gmail_check",
+        replace_existing=True,
+    )
+
     _scheduler.start()
+    run_watchdog()  # Rapport immédiat au démarrage
 
     next_job = _scheduler.get_job("nightly_scrape")
     if next_job:

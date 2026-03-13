@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 
 import { SchedulerPanel } from '@/components/SchedulerPanel'
+import { RapportPanel } from '@/components/RapportPanel'
 
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -384,6 +385,8 @@ export default function DashboardPage() {
       {/* Panneau scraping */}
       <ScrapePanel onDone={loadStats} />
       <SchedulerPanel />
+      <RapportPanel />
+
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         <KpiCard icon={Users}      label="Total Prospects"  value={stats.total}               color="#3b82f6" />

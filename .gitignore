@@ -21,3 +21,5 @@ proprexis_frontend/.env.local
 /app/api/__pycache__
 /__pycache__
 __pycache__/main.cpython-311.pyc
+credentials.json
+token.json
