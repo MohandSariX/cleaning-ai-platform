@@ -16,6 +16,7 @@ from app.models.prospect import Prospect
 from app.models.email_log import EmailLog
 from app.agents.email_templates import get_template, render_template
 from app.agents.gmail_agent import send_prospection_email
+from app.agents.activity_logger import log_email_sent, log_error, log_scheduler_job
 from app.agents.telegram_notifier import send_message as tg
 
 logger = logging.getLogger("proprexis.outreach")
@@ -96,6 +97,7 @@ def send_one_prospection_email(prospect: Prospect, db: Session) -> bool:
             prospect.status = "email_generated"
             prospect.last_contacted = datetime.now()
             logger.info(f"✅ Email envoyé à {prospect.company_name} ({prospect.email})")
+            log_email_sent(prospect.id, prospect.company_name, prospect.city or "", email_type, objet, prospect.lead_score)
         else:
             logger.warning(f"❌ Échec envoi à {prospect.company_name}")
 

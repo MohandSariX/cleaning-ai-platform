@@ -26,6 +26,7 @@ from app.models.client import Client
 from app.models.devis import Devis
 from app.agents.telegram_notifier import send_message
 from app.agents.qualification_agent import process_qualification
+from app.agents.activity_logger import log_email_sent, log_email_received, log_system, log_error
 import logging
 
 logger = logging.getLogger("proprexis.gmail")
@@ -56,6 +57,7 @@ def get_gmail_service():
                 with open(TOKEN_PATH, 'w') as f:
                     f.write(creds.to_json())
                 logger.info("Token Gmail rafraichi automatiquement")
+                log_system("✅ Token Gmail rafraîchi automatiquement", status="info")
             except Exception as e:
                 logger.error(f"Refresh token echoue : {e}")
                 try:
@@ -70,15 +72,22 @@ def get_gmail_service():
 
 
 def check_token_health() -> dict:
-    """Verifie l etat du token Gmail pour le dashboard."""
+    """Verifie l etat du token Gmail — rafraichit automatiquement si expire."""
     try:
         if not os.path.exists(TOKEN_PATH):
             return {"status": "missing"}
         creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
         if not creds.valid and not creds.refresh_token:
             return {"status": "invalid"}
+        # Refresh automatique si expiré
         if creds.expired and creds.refresh_token:
-            return {"status": "expired_refreshable"}
+            try:
+                creds.refresh(Request())
+                with open(TOKEN_PATH, 'w') as f:
+                    f.write(creds.to_json())
+                logger.info("Token Gmail rafraichi via check_token_health")
+            except Exception as e:
+                return {"status": "invalid", "message": f"Refresh echoue : {e}"}
         if creds.valid and creds.expiry:
             import datetime as dt
             from datetime import timezone
@@ -274,6 +283,7 @@ def handle_reply(service, msg_id: str, sender: str, subject: str, body: str):
 
         intention = detect_intention(subject, body)
         logger.info(f"Réponse de {prospect.company_name} — intention: {intention['intention']}")
+        log_email_received(prospect.id, prospect.company_name, intention["intention"], body[:200])
 
         if intention["intention"] == "pas_interesse":
             prospect.status = "lost"

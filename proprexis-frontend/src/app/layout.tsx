@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   LayoutDashboard, Users, UserCheck,
-  FileText, Briefcase, Calendar, CreditCard, Settings
+  FileText, Briefcase, Calendar, CreditCard, Settings, Activity
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -17,6 +17,7 @@ const nav = [
   { href: '/chantiers',   label: 'Chantiers',   icon: Briefcase },
   { href: '/planning',    label: 'Planning',    icon: Calendar },
   { href: '/facturation', label: 'Facturation', icon: CreditCard },
+  { href: '/activite',    label: 'Activité',    icon: Activity },
   { href: '/parametres',  label: 'Paramètres',  icon: Settings },
 ]
 
