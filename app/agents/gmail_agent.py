@@ -70,15 +70,22 @@ def get_gmail_service():
 
 
 def check_token_health() -> dict:
-    """Verifie l etat du token Gmail pour le dashboard."""
+    """Verifie l etat du token Gmail — rafraichit automatiquement si expire."""
     try:
         if not os.path.exists(TOKEN_PATH):
             return {"status": "missing"}
         creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
         if not creds.valid and not creds.refresh_token:
             return {"status": "invalid"}
+        # Refresh automatique si expiré
         if creds.expired and creds.refresh_token:
-            return {"status": "expired_refreshable"}
+            try:
+                creds.refresh(Request())
+                with open(TOKEN_PATH, 'w') as f:
+                    f.write(creds.to_json())
+                logger.info("Token Gmail rafraichi via check_token_health")
+            except Exception as e:
+                return {"status": "invalid", "message": f"Refresh echoue : {e}"}
         if creds.valid and creds.expiry:
             import datetime as dt
             from datetime import timezone

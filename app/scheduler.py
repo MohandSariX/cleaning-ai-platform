@@ -21,6 +21,7 @@ from app.agents.watchdog import run_watchdog
 from app.agents.telegram_notifier import notify_scraping_termine, notify_prospects_nuit
 from app.agents.gmail_agent import check_inbox
 from app.agents.email_outreach_agent import run_outreach_batch, run_relances
+from app.agents.pappers_agent import enrich_batch as pappers_enrich_batch
 import logging
 
 logger = logging.getLogger("proprexis.scheduler")
@@ -277,6 +278,21 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    # Job 6 — Enrichissement Pappers quotidien à 6h
+    _scheduler.add_job(
+        pappers_enrich_batch,
+        trigger=CronTrigger(hour=6, minute=0, timezone="Europe/Paris"),
+        id="pappers_enrich",
+        replace_existing=True,
+    )
+
+   # Job 6 — Enrichissement Pappers quotidien à 6h
+    _scheduler.add_job(
+        pappers_enrich_batch,
+        trigger=CronTrigger(hour=6, minute=0, timezone="Europe/Paris"),
+        id="pappers_enrich",
+        replace_existing=True,
+    )
     _scheduler.start()
     run_watchdog()  # Rapport immédiat au démarrage
 
