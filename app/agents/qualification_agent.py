@@ -11,6 +11,7 @@ from datetime import datetime
 from app.core.database import SessionLocal
 from app.models.prospect import Prospect
 from app.agents.conversation_store import store
+from app.agents.activity_logger import log_qualification, log_devis, log_error
 import logging
 
 logger = logging.getLogger("proprexis.qualification")
@@ -217,6 +218,7 @@ def process_qualification(prospect: Prospect, message: str, service, sujet: str 
             f"→ [Créer le chantier]({CRM_URL}/chantiers)"
         )
         store.mark_signe(email)
+        log_qualification(prospect.id, prospect.company_name, "signed", ia_decision=f"IA: {intention_ia}")
         return "signed"
 
     # Accusé de réception
@@ -235,6 +237,7 @@ def process_qualification(prospect: Prospect, message: str, service, sujet: str 
         finally:
             db.close()
         store.mark_perdu(email)
+        log_qualification(prospect.id, prospect.company_name, "lost", ia_decision=f"IA: {intention_ia}")
         return "lost"
 
     # Négociation
@@ -332,6 +335,7 @@ def process_qualification(prospect: Prospect, message: str, service, sujet: str 
             historique_final = historique + [f"Proprexis [Votre devis {devis.numero}]: Devis envoyé — {calcul['montant_ttc']:.0f}€ TTC"]
             store.update(email, historique=historique_final)
             store.mark_devis_envoye(email)
+            log_devis(prospect.id, prospect.company_name, devis.numero, calcul["montant_ttc"], calcul["type_prestation"])
 
             tg(
                 f"🎯 *Devis envoyé !*\n\n"
@@ -350,6 +354,7 @@ def process_qualification(prospect: Prospect, message: str, service, sujet: str 
             send_email(service, to=email, subject="Re: Votre demande de nettoyage — Proprexis", body=email_body)
             hist = historique + [f"Proprexis [Re: qualification]: {email_body[:200]}"]
             store.update(email, historique=hist)
+            log_qualification(prospect.id, prospect.company_name, "qualification_sent", infos=infos)
             return "qualification_sent"
 
     return "no_action"

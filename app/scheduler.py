@@ -22,6 +22,9 @@ from app.agents.telegram_notifier import notify_scraping_termine, notify_prospec
 from app.agents.gmail_agent import check_inbox
 from app.agents.email_outreach_agent import run_outreach_batch, run_relances
 from app.agents.pappers_agent import enrich_batch as pappers_enrich_batch
+from app.agents.permis_construire_agent import run_permis_scraper
+from app.agents.email_finder import find_emails_batch
+from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
 import logging
 
 logger = logging.getLogger("proprexis.scheduler")
@@ -191,6 +194,7 @@ def run_nightly_scrape():
         run_lead_scoring()
         _log("✅ Scoring terminé")
         _log(f"🎉 Nuit terminée ! Dept {dept} complet.")
+        log_scraping(dept, dept_names.get(dept, dept), scheduler_status["stats"].get("prospects_scraped", 0), scheduler_status["stats"].get("queries_done", 0))
 
         # Notification Telegram fin de scraping
         dept_names = {
@@ -286,15 +290,26 @@ def start_scheduler():
         replace_existing=True,
     )
 
-   # Job 6 — Enrichissement Pappers quotidien à 6h
+    # Job 7 — Permis de construire : 1er de chaque mois à 5h
     _scheduler.add_job(
-        pappers_enrich_batch,
-        trigger=CronTrigger(hour=6, minute=0, timezone="Europe/Paris"),
-        id="pappers_enrich",
+        run_permis_scraper,
+        trigger=CronTrigger(day=1, hour=5, minute=0, timezone="Europe/Paris"),
+        id="permis_construire",
         replace_existing=True,
     )
+
+    # Job 8 — Email finder quotidien à 7h
+    _scheduler.add_job(
+        find_emails_batch,
+        trigger=CronTrigger(hour=7, minute=0, timezone="Europe/Paris"),
+        id="email_finder",
+        replace_existing=True,
+    )
+
+
     _scheduler.start()
     run_watchdog()  # Rapport immédiat au démarrage
+    log_system("🚀 Scheduler Proprexis démarré", status="info")
 
     next_job = _scheduler.get_job("nightly_scrape")
     if next_job:

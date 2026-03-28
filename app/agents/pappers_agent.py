@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.prospect import Prospect
 from app.agents.telegram_notifier import send_message as tg
+from app.agents.activity_logger import log_enrichment, log_error, log_scheduler_job
 
 logger = logging.getLogger("proprexis.pappers")
 
@@ -253,6 +254,7 @@ def enrich_batch(limit: int = 10) -> dict:
                 not_found += 1
 
         logger.info(f"Batch Pappers : {enriched} enrichis, {not_found} introuvables")
+        log_enrichment(enriched, not_found)
 
         if enriched > 0:
             tg(f"📊 *Enrichissement Pappers terminé*\n{enriched} prospects enrichis avec CA + dirigeant")

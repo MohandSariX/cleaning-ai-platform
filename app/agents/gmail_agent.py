@@ -26,6 +26,7 @@ from app.models.client import Client
 from app.models.devis import Devis
 from app.agents.telegram_notifier import send_message
 from app.agents.qualification_agent import process_qualification
+from app.agents.activity_logger import log_email_sent, log_email_received, log_system, log_error
 import logging
 
 logger = logging.getLogger("proprexis.gmail")
@@ -56,6 +57,7 @@ def get_gmail_service():
                 with open(TOKEN_PATH, 'w') as f:
                     f.write(creds.to_json())
                 logger.info("Token Gmail rafraichi automatiquement")
+                log_system("✅ Token Gmail rafraîchi automatiquement", status="info")
             except Exception as e:
                 logger.error(f"Refresh token echoue : {e}")
                 try:
@@ -281,6 +283,7 @@ def handle_reply(service, msg_id: str, sender: str, subject: str, body: str):
 
         intention = detect_intention(subject, body)
         logger.info(f"Réponse de {prospect.company_name} — intention: {intention['intention']}")
+        log_email_received(prospect.id, prospect.company_name, intention["intention"], body[:200])
 
         if intention["intention"] == "pas_interesse":
             prospect.status = "lost"
