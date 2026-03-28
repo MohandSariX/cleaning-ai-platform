@@ -6,6 +6,7 @@ from reportlab.platypus import (Paragraph, Spacer, Table, TableStyle,
 from reportlab.lib.styles import ParagraphStyle
 from io import BytesIO
 from datetime import date, datetime
+from app.utils.devis_engine import load_rules
 
 DARK         = colors.HexColor('#0f172a')
 ACCENT       = colors.HexColor('#3b82f6')
@@ -19,13 +20,15 @@ WHITE        = colors.white
 
 W, H = A4
 
-# RIB entreprise — à personnaliser
-RIB = {
-    'banque':   'Crédit Mutuel',
-    'titulaire': 'PROPREXIS',
-    'iban':     'FR76 XXXX XXXX XXXX XXXX XXXX XXX',
-    'bic':      'CMCIFRPP',
-}
+def _get_rib():
+    """Charge le RIB depuis devis_rules.json."""
+    societe = load_rules().get("societe", {})
+    return {
+        'banque':    'Banque',
+        'titulaire': societe.get("nom", "PROPREXIS"),
+        'iban':      societe.get("iban", "FR76 XXXX XXXX XXXX XXXX XXXX XXX"),
+        'bic':       societe.get("bic", "XXXXXXXX"),
+    }
 
 
 def _header_footer(canvas_obj, doc, facture_data):
@@ -38,11 +41,14 @@ def _header_footer(canvas_obj, doc, facture_data):
     # Nom entreprise
     canvas_obj.setFillColor(WHITE)
     canvas_obj.setFont('Helvetica-Bold', 17)
-    canvas_obj.drawString(20*mm, H - 14*mm, 'PROPREXIS')
+    nom_societe = load_rules().get("societe", {}).get("nom", "PROPREXIS").upper()
+    canvas_obj.drawString(20*mm, H - 14*mm, nom_societe)
 
     canvas_obj.setFont('Helvetica', 8)
     canvas_obj.setFillColor(colors.HexColor('#94a3b8'))
-    canvas_obj.drawString(20*mm, H - 21*mm, 'Nettoyage professionnel  |  contact@proprexis.fr  |  06 XX XX XX XX')
+    s = load_rules().get("societe", {})
+    ligne = f"Nettoyage professionnel  |  {s.get('email', 'contact@proprexis.fr')}  |  {s.get('telephone', '06 XX XX XX XX')}"
+    canvas_obj.drawString(20*mm, H - 21*mm, ligne)
 
     # Badge FACTURE (coin droit)
     canvas_obj.setFillColor(ACCENT)
@@ -228,10 +234,10 @@ def generate_facture_pdf(facture_data: dict, client_data: dict) -> bytes:
     story.append(Paragraph('COORDONNEES BANCAIRES', s_section))
 
     rib_text = (
-        f"<b>Banque :</b> {RIB['banque']}<br/>"
-        f"<b>Titulaire :</b> {RIB['titulaire']}<br/>"
-        f"<b>IBAN :</b> {RIB['iban']}<br/>"
-        f"<b>BIC :</b> {RIB['bic']}<br/>"
+        f"<b>Banque :</b> {_get_rib()['banque']}<br/>"
+        f"<b>Titulaire :</b> {_get_rib()['titulaire']}<br/>"
+        f"<b>IBAN :</b> {_get_rib()['iban']}<br/>"
+        f"<b>BIC :</b> {_get_rib()['bic']}<br/>"
         f"<font size='8' color='#64748b'>Merci d indiquer la reference <b>{facture_data.get('numero', '')}</b> en objet du virement.</font>"
     )
     rib_bloc = Table(

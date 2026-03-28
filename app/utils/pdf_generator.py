@@ -8,6 +8,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from io import BytesIO
 from datetime import date, datetime
+from app.utils.devis_engine import load_rules
 
 # ── Couleurs ────────────────────────────────────────────────
 DARK         = colors.HexColor('#0f172a')
@@ -30,8 +31,9 @@ def _header_footer(canvas_obj, doc, devis_data):
 
     # Nom entreprise
     canvas_obj.setFillColor(WHITE)
+    societe = load_rules().get("societe", {})
     canvas_obj.setFont('Helvetica-Bold', 22)
-    canvas_obj.drawString(20*mm, H - 22*mm, 'PROPREXIS')
+    canvas_obj.drawString(20*mm, H - 22*mm, societe.get("nom", "PROPREXIS").upper())
 
     # Tagline
     canvas_obj.setFont('Helvetica', 9)
@@ -41,7 +43,13 @@ def _header_footer(canvas_obj, doc, devis_data):
     # Coordonnees entreprise (droite)
     canvas_obj.setFont('Helvetica', 8)
     canvas_obj.setFillColor(colors.HexColor('#cbd5e1'))
-    for i, line in enumerate(['contact@proprexis.fr', '06 XX XX XX XX', 'Paris, Ile-de-France']):
+    societe = load_rules().get("societe", {})
+    infos_header = [
+        societe.get("email", "contact@proprexis.fr"),
+        societe.get("telephone", "06 XX XX XX XX"),
+        societe.get("adresse", "Ile-de-France"),
+    ]
+    for i, line in enumerate(infos_header):
         canvas_obj.drawRightString(W - 20*mm, H - (20 + i*5)*mm, line)
 
     # Footer
@@ -107,9 +115,12 @@ def generate_devis_pdf(devis_data: dict, client_data: dict) -> bytes:
     ]
     client_text = '<br/>'.join(l for l in client_lines if l)
 
+    rules = load_rules()
+    validite = rules.get("validite_devis_jours", 30)
+    societe = rules.get("societe", {})
     infos_text = (
         f"<b>Date d emission :</b> {emission_fmt}<br/>"
-        f"<b>Validite :</b> 30 jours<br/>"
+        f"<b>Validite :</b> {validite} jours<br/>"
         f"<b>Reference :</b> {devis_data.get('numero', '')}"
     )
 
@@ -218,11 +229,15 @@ def generate_devis_pdf(devis_data: dict, client_data: dict) -> bytes:
     story.append(Spacer(1, 4*mm))
     story.append(Paragraph('CONDITIONS', s_section))
 
+    rules_cond = load_rules()
+    validite_cond = rules_cond.get("validite_devis_jours", 30)
+    societe_cond = rules_cond.get("societe", {})
     for cond in [
-        'Devis valable 30 jours a compter de la date d emission.',
-        'Paiement a reception de facture par virement bancaire.',
+        f'Devis valable {validite_cond} jours a compter de la date d emission.',
+        f'Paiement a reception de facture par virement bancaire — IBAN : {societe_cond.get("iban", "FR76 XXXX")}',
         'En cas d acceptation, merci de retourner ce devis signe avec la mention "Bon pour accord".',
         'Toute prestation supplementaire fera l objet d un devis complementaire.',
+        f'SIRET : {societe_cond.get("siret", "XXX XXX XXX XXXXX")} — {societe_cond.get("forme_juridique", "Auto-entrepreneur")}',
     ]:
         story.append(Paragraph(f'- {cond}', s_small))
         story.append(Spacer(1, 1*mm))

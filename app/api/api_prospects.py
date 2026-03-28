@@ -111,3 +111,37 @@ def _prospect_to_dict(p):
         "status": p.status,
         "created_at": p.created_at.isoformat() if p.created_at else None,
     }
+
+@router.get("/prospects/{prospect_id}/emails")
+def get_prospect_emails(prospect_id: int, db: Session = Depends(get_db)):
+    """Retourne l historique des emails envoyés à un prospect."""
+    from app.models.email_log import EmailLog
+    logs = db.query(EmailLog).filter(
+        EmailLog.prospect_id == prospect_id
+    ).order_by(EmailLog.sent_at.desc()).all()
+    return [{
+        "id": l.id,
+        "email_type": l.email_type,
+        "recipient": l.recipient,
+        "subject": l.subject,
+        "status": l.status,
+        "sent_at": str(l.sent_at),
+    } for l in logs]
+
+@router.get("/prospects/{prospect_id}/conversation")
+def get_prospect_conversation(prospect_id: int, db: Session = Depends(get_db)):
+    """Retourne la conversation de qualification d un prospect."""
+    import json
+    from app.models.conversation import Conversation
+    conv = db.query(Conversation).filter(
+        Conversation.prospect_id == prospect_id
+    ).first()
+    if not conv:
+        return None
+    return {
+        "status": conv.status,
+        "infos": json.loads(conv.infos_json or "{}"),
+        "historique": json.loads(conv.historique_json or "[]"),
+        "nb_echanges": conv.nb_echanges,
+        "updated_at": str(conv.updated_at) if conv.updated_at else None,
+    }

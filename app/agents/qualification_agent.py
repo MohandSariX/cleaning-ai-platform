@@ -1,53 +1,28 @@
 """
 Agent de qualification IA — Dialogue avec les prospects par email
-Utilise Ollama/Mistral en local pour comprendre et qualifier les besoins
+Utilise Ollama/phi3:mini en local pour comprendre et qualifier les besoins
+Persistance PostgreSQL via ConversationStore
 """
 
 import requests
 import json
 import re
 from datetime import datetime
-from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.prospect import Prospect
+from app.agents.conversation_store import store
 import logging
 
 logger = logging.getLogger("proprexis.qualification")
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
+CRM_URL = "http://localhost:3000"
 
-# Grille tarifaire Proprexis
-TARIFS = {
-    "fin_chantier": {
-        "base": 8.0,       # €/m²
-        "min": 400,        # € minimum
-        "description": "Nettoyage fin de chantier",
-    },
-    "bureaux_ponctuel": {
-        "base": 4.5,       # €/m²
-        "min": 150,
-        "description": "Nettoyage bureaux ponctuel",
-    },
-    "bureaux_hebdo": {
-        "base": 3.5,       # €/m²/semaine
-        "min": 120,
-        "description": "Nettoyage bureaux hebdomadaire",
-    },
-    "bureaux_mensuel": {
-        "base": 2.5,       # €/m²/mois
-        "min": 80,
-        "description": "Nettoyage bureaux mensuel",
-    },
-    "copropriete": {
-        "base": 2.0,       # €/m²/mois
-        "min": 200,
-        "description": "Entretien parties communes",
-    },
-}
+from app.utils.devis_engine import calculate as engine_calculate, get_questions_manquantes
 
 
 def _call_ollama(prompt: str, max_tokens: int = 400) -> str:
-    """Appelle Ollama Mistral et retourne le texte brut."""
+    """Appelle Ollama phi3:mini et retourne le texte brut."""
     try:
         res = requests.post(
             OLLAMA_URL,
@@ -66,33 +41,55 @@ def _call_ollama(prompt: str, max_tokens: int = 400) -> str:
 
 
 def classify_message_ia(message: str, sujet: str = "", contexte: str = "", historique: list = None) -> str:
+    """
+    Utilise l'IA pour classifier l'intention d'un message.
+    Retourne : accuse | interesse | devis | question | negociation | pas_interesse | signature | incertain
+    """
     categories = ["accuse", "interesse", "devis", "question", "negociation", "pas_interesse", "signature", "incertain"]
+
     historique_str = ""
     if historique:
         historique_str = "\nHistorique des échanges :\n" + "\n".join(f"  - {h}" for h in historique[-10:])
+
     prompt = (
         "Tu analyses un email pour une entreprise de nettoyage professionnel.\n"
         f"Contexte : {contexte if contexte else 'Premier contact'}\n"
         f"{historique_str}\n"
         f"Sujet : {sujet if sujet else 'sans sujet'}\n"
         f"Corps : {message}\n\n"
-        "IMPORTANT : Si l'historique montre qu'un devis vient d'être envoyé et que le message est court et positif, c'est un accuse.\n\n"
+        "RÈGLES IMPORTANTES :\n"
+        "- accuse = message passif sans engagement : bien reçu, merci, je vais réfléchir, à bientôt, je l'étudie\n"
+        "- signature = message actif avec engagement : on y va, je suis d'accord, c'est ok, on commence, je valide, je signe\n"
+        "- Si l'historique montre qu'un devis vient d'être envoyé et que le message est court et positif = accuse\n\n"
         "Categories :\n"
-        "- accuse : bien reçu, merci, ok, je regarde, je réfléchis, à bientôt\n"
-        "- interesse : intérêt général\n"
-        "- devis : donne superficie/fréquence/type ou demande devis\n"
-        "- question : pose une question\n"
-        "- negociation : trop cher, remise\n"
-        "- pas_interesse : refus\n"
-        "- signature : accepte, on y va, je signe\n"
-        "- incertain : impossible à classifier\n\n"
+        "- accuse : remerciement passif, confirmation réception sans engagement\n"
+        "- interesse : intérêt général sans demande précise\n"
+        "- devis : donne superficie/fréquence/type ou demande un devis\n"
+        "- question : pose une question sur services, prix, zone\n"
+        "- negociation : trop cher, demande remise ou réduction\n"
+        "- pas_interesse : refus, stop, ne plus contacter\n"
+        "- signature : accepte le devis, confirme vouloir commencer, donne son accord clair\n"
+        "- incertain : vraiment impossible à classifier\n\n"
         'Réponds UNIQUEMENT avec ce JSON : {"categorie": "UNE_CATEGORIE"}'
     )
+
     raw = _call_ollama(prompt, max_tokens=30).strip()
+    # Nettoyer les backticks markdown que phi3:mini ajoute parfois
+    raw = re.sub(r"```json|```", "", raw).strip()
     try:
         data = json.loads(re.search(r"{.*}", raw, re.DOTALL).group())
         cat = data.get("categorie", "incertain").lower()
         if cat in categories:
+            # Filet de sécurité signature
+            if cat == "interesse":
+                msg_lower = message.lower()
+                signature_forts = [
+                    "on y va", "je suis d'accord", "c'est ok pour moi",
+                    "on commence", "je valide", "marché conclu", "deal",
+                    "vous pouvez venir", "on peut démarrer", "c'est bon pour moi"
+                ]
+                if any(s in msg_lower for s in signature_forts):
+                    return "signature"
             return cat
     except Exception:
         pass
@@ -100,253 +97,148 @@ def classify_message_ia(message: str, sujet: str = "", contexte: str = "", histo
 
 
 def extract_infos_from_message(message: str, prospect_context: dict) -> dict:
-    """
-    Utilise l'IA pour extraire les infos de qualification depuis un message.
-    Retourne les infos trouvées et ce qui manque encore.
-    """
-    prompt = f"""Tu es un assistant qui analyse des emails de prospects pour une entreprise de nettoyage professionnel.
-
-Contexte du prospect :
-- Entreprise : {prospect_context.get('company_name', 'inconnue')}
-- Secteur : {prospect_context.get('industry', 'inconnu')}
-- Ville : {prospect_context.get('city', 'inconnue')}
-
-Message reçu :
-"{message}"
-
-Extrais les informations suivantes si présentes dans le message.
-Réponds UNIQUEMENT en JSON valide, sans markdown :
-{{
-  "type_prestation": "fin_chantier|bureaux|copropriete|null",
-  "superficie_m2": nombre ou null,
-  "frequence": "ponctuel|hebdo|mensuel|null",
-  "ville": "ville mentionnée ou null",
-  "disponibilite": "disponibilité mentionnée ou null",
-  "infos_supplementaires": "autres infos utiles ou null",
-  "intention": "interesse|demande_devis|question|pas_interesse|incertain"
-}}"""
-
-    raw = _call_ollama(prompt, max_tokens=300)
-
+    """Utilise l'IA pour extraire les infos de qualification depuis un message."""
+    prompt = (
+        "Tu es un assistant qui analyse des emails pour une entreprise de nettoyage professionnel.\n\n"
+        f"Contexte du prospect :\n"
+        f"- Entreprise : {prospect_context.get('company_name', 'inconnue')}\n"
+        f"- Secteur : {prospect_context.get('industry', 'inconnu')}\n"
+        f"- Ville : {prospect_context.get('city', 'inconnue')}\n\n"
+        f"Message reçu :\n\"{message}\"\n\n"
+        "Extrais les informations suivantes si présentes.\n"
+        "Réponds UNIQUEMENT en JSON valide, sans markdown :\n"
+        '{"type_prestation": "fin_chantier|bureaux|copropriete|null", '
+        '"superficie_m2": nombre_ou_null, '
+        '"frequence": "ponctuel|hebdo|mensuel|null", '
+        '"ville": "ville_ou_null", '
+        '"intention": "interesse|demande_devis|question|pas_interesse|incertain"}'
+    )
+    raw = _call_ollama(prompt, max_tokens=200)
+    raw = re.sub(r"```json|```", "", raw).strip()
     try:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r"{.*}", raw, re.DOTALL)
         if match:
             return json.loads(match.group())
-    except:
+    except Exception:
         pass
-
     return {
-        "type_prestation": None,
-        "superficie_m2": None,
-        "frequence": None,
-        "ville": prospect_context.get('city'),
-        "disponibilite": None,
-        "infos_supplementaires": None,
+        "type_prestation": None, "superficie_m2": None,
+        "frequence": None, "ville": prospect_context.get("city"),
         "intention": "incertain"
     }
 
 
-def generate_qualification_email(prospect_context: dict, infos_connues: dict, historique: list) -> str:
-    """
-    Génère un email de qualification qui pose uniquement les questions manquantes.
-    """
-    questions_manquantes = []
-    if not infos_connues.get("type_prestation"):
-        questions_manquantes.append("type de prestation (fin de chantier, bureaux, parties communes...)")
-    if not infos_connues.get("superficie_m2"):
-        questions_manquantes.append("superficie approximative en m²")
-    if not infos_connues.get("frequence"):
-        questions_manquantes.append("fréquence souhaitée (intervention unique, hebdomadaire, mensuelle...)")
+def generate_qualification_email(prospect_context: dict, infos_connues: dict, historique: list) -> str | None:
+    """Génère un email de qualification qui pose uniquement les questions manquantes."""
+    type_p = infos_connues.get("type_prestation") or "bureaux"
+    questions_manquantes = get_questions_manquantes(type_p, infos_connues)
 
     if not questions_manquantes:
-        return None  # Toutes les infos sont là, on peut faire le devis
+        return None
 
     historique_str = "\n".join([f"- {h}" for h in historique[-3:]]) if historique else "Premier échange"
 
-    prompt = f"""Tu es Mohand Sari de Proprexis, entreprise de nettoyage professionnel en Île-de-France.
-Tu dois répondre à un prospect intéressé par tes services pour lui demander des informations manquantes.
-
-Prospect : {prospect_context.get('company_name')} à {prospect_context.get('city', 'Île-de-France')}
-Secteur : {prospect_context.get('industry', 'non précisé')}
-
-Informations déjà connues :
-{json.dumps({k: v for k, v in infos_connues.items() if v}, ensure_ascii=False)}
-
-Questions à poser (seulement celles-ci, pas d'autres) :
-{chr(10).join(f"- {q}" for q in questions_manquantes)}
-
-Historique récent :
-{historique_str}
-
-Rédige un email court et professionnel en français (max 80 mots hors signature).
-
-RÈGLES STRICTES :
-- UNIQUEMENT en français, aucun mot en anglais, aucune traduction, aucune note
-- Ne commence PAS par "Bonjour" (il sera ajouté automatiquement)
-- Pas de "Note:", pas de "Translation:", pas de tirets "---"
-- Remercie pour l'intérêt en une phrase
-- Pose UNIQUEMENT les questions manquantes listées ci-dessus
-- Termine par "Nous vous enverrons un devis sous 24h."
-- STOP après cette phrase, rien d'autre
-
-Réponds UNIQUEMENT avec le corps de l'email, rien d'autre."""
+    prompt = (
+        f"Tu es Mohand Sari de Proprexis, entreprise de nettoyage professionnel en Île-de-France.\n"
+        f"Prospect : {prospect_context.get('company_name')} à {prospect_context.get('city', 'Île-de-France')}\n"
+        f"Secteur : {prospect_context.get('industry', 'non précisé')}\n\n"
+        f"Informations déjà connues : {json.dumps({k: v for k, v in infos_connues.items() if v}, ensure_ascii=False)}\n\n"
+        f"Questions à poser :\n" + "\n".join(f"- {q}" for q in questions_manquantes) + "\n\n"
+        f"Historique récent :\n{historique_str}\n\n"
+        "RÈGLES STRICTES :\n"
+        "- UNIQUEMENT en français, aucun mot en anglais, aucune note, aucune traduction\n"
+        "- Ne commence PAS par Bonjour\n"
+        "- Pas de Note:, pas de tirets ---\n"
+        "- Remercie en une phrase, pose les questions, termine par 'Nous vous enverrons un devis sous 24h.'\n"
+        "- STOP après cette phrase\n\n"
+        "Réponds UNIQUEMENT avec le corps de l'email, rien d'autre."
+    )
 
     body = _call_ollama(prompt, max_tokens=300)
 
     if not body:
-        # Fallback sans IA
-        body = f"Suite à votre intérêt pour nos services, afin de vous établir un devis précis, pourriez-vous nous préciser :\n\n"
+        body = "Merci de votre intérêt.\n\nPourriez-vous nous préciser :\n"
         for q in questions_manquantes:
             body += f"• {q.capitalize()}\n"
-        body += "\nNous vous adresserons votre devis sous 24h."
+        body += "\nNous vous enverrons un devis sous 24h."
 
-    # Nettoyer les artefacts Mistral
-    import re as _re
-    body = _re.sub(r'---.*', '', body, flags=_re.DOTALL).strip()
-    body = _re.sub(r'Note[\s]*[\d]*[\s]*:.*', '', body, flags=_re.DOTALL).strip()
+    # Nettoyer les artefacts
+    body = re.sub(r"---.*", "", body, flags=re.DOTALL).strip()
+    body = re.sub(r"Note[\s]*[\d]*[\s]*:.*", "", body, flags=re.DOTALL).strip()
     body = body.replace("Bonjour,", "").replace("Bonjour ,", "").strip()
 
-    email = f"""Bonjour,
-
-{body}
-
-Cordialement,
-Mohand Sari — Proprexis
-contact.proprexis@gmail.com | 06 XX XX XX XX"""
-
-    return email
+    return f"Bonjour,\n\n{body}\n\nCordialement,\nMohand Sari — Proprexis\ncontact.proprexis@gmail.com | 06 XX XX XX XX"
 
 
 def calculate_devis(infos: dict) -> dict:
-    """Calcule le montant du devis selon les infos collectées."""
-    type_p = infos.get("type_prestation", "bureaux")
+    """Calcule le montant du devis via le moteur devis_rules.json."""
+    type_p = infos.get("type_prestation") or "bureaux"
     superficie = infos.get("superficie_m2") or 100
-    frequence = infos.get("frequence", "ponctuel")
-
-    # Déterminer la clé tarifaire
-    if type_p == "fin_chantier":
-        cle = "fin_chantier"
-    elif type_p == "copropriete":
-        cle = "copropriete"
-    elif frequence == "hebdo":
-        cle = "bureaux_hebdo"
-    elif frequence == "mensuel":
-        cle = "bureaux_mensuel"
-    else:
-        cle = "bureaux_ponctuel"
-
-    tarif = TARIFS.get(cle, TARIFS["bureaux_ponctuel"])
-    montant_ht = max(tarif["min"], superficie * tarif["base"])
-    montant_ht = round(montant_ht, 2)
-
-    return {
-        "type_prestation": type_p,
-        "description": tarif["description"],
-        "superficie_m2": superficie,
-        "frequence": frequence,
-        "montant_ht": montant_ht,
-        "tva_pct": 20.0,
-        "montant_ttc": round(montant_ht * 1.2, 2),
-        "cle_tarif": cle,
-    }
+    frequence = infos.get("frequence") or "ponctuel"
+    return engine_calculate(type_p, superficie, frequence)
 
 
 def needs_human_intervention(message: str, infos: dict, nb_echanges: int) -> tuple:
-    """
-    Détermine si un humain doit intervenir.
-    Retourne (bool, raison)
-    """
-    message_lower = message.lower()
-
-    # Négociation de prix
-    if any(x in message_lower for x in ["trop cher", "négoci", "negoci", "réduire", "moins cher", "remise", "discount"]):
+    """Détermine si un humain doit intervenir. Retourne (bool, raison)"""
+    msg = message.lower()
+    if any(x in msg for x in ["trop cher", "négoci", "negoci", "réduire", "moins cher", "remise"]):
         return True, "négociation prix"
-
-    # Gros chantier
     superficie = infos.get("superficie_m2")
     if superficie and superficie > 2000:
         return True, f"grand chantier ({superficie}m²) — visite recommandée"
-
-    # Trop d'échanges sans aboutir
     if nb_echanges >= 4:
         return True, "4 échanges sans devis finalisé"
-
     return False, None
 
 
-# ── Stockage des conversations en cours ──────────────────────────────────────
-# { email: { "infos": {}, "historique": [], "nb_echanges": 0 } }
-conversations = {}
-
-# Emails ayant déjà reçu un devis — on ignore leurs messages tant qu'ils n'ont pas signé
-devis_envoyes = set()
-
-
 def process_qualification(prospect: Prospect, message: str, service, sujet: str = "") -> str:
-    """
-    Point d'entrée principal — gère le dialogue de qualification complet.
-    Retourne l'action effectuée.
-    """
+    """Point d'entrée principal — gère le dialogue de qualification complet."""
     from app.agents.telegram_notifier import send_message as tg
     from app.agents.gmail_agent import send_email, generate_auto_devis
 
     email = prospect.email
-    CRM_URL = "http://localhost:3000"
 
-    # Initialiser la conversation si nouvelle (avant classification)
-    if email not in conversations:
-        conversations[email] = {
-            "infos": {
-                "ville": prospect.city,
-                "type_prestation": None,
-                "superficie_m2": None,
-                "frequence": None,
-            },
-            "historique": [],
-            "nb_echanges": 0,
-        }
-
-    conv = conversations[email]
+    # Charger ou créer la conversation depuis PostgreSQL
+    conv = store.get_or_create(prospect)
 
     # Classifier l'intention avec l'IA
-    contexte = f"Devis déjà envoyé à {prospect.company_name}" if email in devis_envoyes else f"Prospect : {prospect.company_name}, {prospect.city}"
+    devis_deja_envoye = store.is_devis_envoye(email)
+    contexte = f"Devis déjà envoyé à {prospect.company_name}" if devis_deja_envoye else f"Prospect : {prospect.company_name}, {prospect.city}"
     historique_complet = conv.get("historique", [])
     intention_ia = classify_message_ia(message, sujet=sujet, contexte=contexte, historique=historique_complet)
     print(f"🧠 Intention IA : {intention_ia}")
 
-    # Signature → notifier Telegram et clore
+    # Signature
     if intention_ia == "signature":
-        from app.agents.telegram_notifier import send_message as tg
         tg(
             f"🎉 *Devis accepté !*\n\n"
             f"Client : *{prospect.company_name}* ({prospect.city})\n"
             f"Message : _{message[:200]}_\n\n"
             f"→ [Créer le chantier]({CRM_URL}/chantiers)"
         )
-        devis_envoyes.discard(email)
+        store.mark_signe(email)
         return "signed"
 
-    # Accusé de réception → ignorer
+    # Accusé de réception
     if intention_ia == "accuse":
         print(f"📭 Accusé ignoré de {email}")
         return "acknowledgement_ignored"
 
-    # Pas intéressé → mettre statut lost
+    # Pas intéressé
     if intention_ia == "pas_interesse":
-        db2 = SessionLocal()
+        db = SessionLocal()
         try:
-            p2 = db2.query(Prospect).filter(Prospect.email == email).first()
-            if p2:
-                p2.status = "lost"
-                db2.commit()
+            p = db.query(Prospect).filter(Prospect.email == email).first()
+            if p:
+                p.status = "lost"
+                db.commit()
         finally:
-            db2.close()
-        devis_envoyes.discard(email)
+            db.close()
+        store.mark_perdu(email)
         return "lost"
 
-    # Négociation → intervention humaine
+    # Négociation
     if intention_ia == "negociation":
-        from app.agents.telegram_notifier import send_message as tg
         tg(
             f"💬 *Négociation en cours*\n\n"
             f"Client : *{prospect.company_name}* ({prospect.city})\n"
@@ -355,71 +247,55 @@ def process_qualification(prospect: Prospect, message: str, service, sujet: str 
         )
         return "human_required"
 
-    # Si devis déjà envoyé et nouvelle demande → recommencer qualification
-    if email in devis_envoyes:
+    # Si devis déjà envoyé et nouvelle demande
+    if devis_deja_envoye:
         if intention_ia in ("devis", "interesse", "question"):
-            devis_envoyes.discard(email)
+            store.mark_perdu(email)  # reset
         else:
             return "acknowledgement_ignored"
 
-    # Initialiser la conversation si nouvelle
-    if email not in conversations:
-        conversations[email] = {
-            "infos": {
-                "ville": prospect.city,
-                "type_prestation": None,
-                "superficie_m2": None,
-                "frequence": None,
-            },
-            "historique": [],
-            "nb_echanges": 0,
-        }
+    # Mettre à jour l'historique
+    nb_echanges = conv["nb_echanges"] + 1
+    historique = conv["historique"] + [f"Prospect [{sujet[:50] if sujet else 'sans sujet'}]: {message[:200]}"]
+    store.update(email, nb_echanges=nb_echanges, historique=historique)
+    conv["nb_echanges"] = nb_echanges
+    conv["historique"] = historique
 
-    conv = conversations[email]
-
-    # (classification déjà effectuée ci-dessus)
-
-    conv["nb_echanges"] += 1
-    conv["historique"].append(f"Prospect [{sujet[:50] if sujet else 'sans sujet'}]: {message[:200]}")
-
-    # Extraire les infos du message avec l'IA
+    # Extraire les infos
     prospect_context = {
         "company_name": prospect.company_name,
         "industry": prospect.industry,
         "city": prospect.city,
     }
     nouvelles_infos = extract_infos_from_message(message, prospect_context)
-
-    # Fusionner avec les infos déjà connues
-    for key in ["type_prestation", "superficie_m2", "frequence", "ville"]:
-        if nouvelles_infos.get(key):
-            conv["infos"][key] = nouvelles_infos[key]
+    print(f"📋 Infos extraites : {nouvelles_infos}")
+    print(f"📋 Infos conversation : {conv['infos']}")
 
     infos = conv["infos"]
+    updated = False
+    for key in ["type_prestation", "superficie_m2", "frequence", "ville"]:
+        if nouvelles_infos.get(key):
+            infos[key] = nouvelles_infos[key]
+            updated = True
+    if updated:
+        store.update(email, infos=infos)
 
-    # Vérifier si intervention humaine nécessaire
-    besoin_humain, raison = needs_human_intervention(message, infos, conv["nb_echanges"])
+    # Vérifier intervention humaine
+    besoin_humain, raison = needs_human_intervention(message, infos, nb_echanges)
     if besoin_humain:
         tg(
             f"🙋 *Intervention requise*\n\n"
             f"Client : *{prospect.company_name}* ({prospect.city})\n"
-            f"Raison : {raison}\n"
-            f"Échanges : {conv['nb_echanges']}\n\n"
+            f"Raison : {raison}\n\n"
             f"_{message[:300]}_\n\n"
-            f"→ [Voir le prospect]({CRM_URL}/prospects/{prospect.id})\n"
-            f"Réponds depuis Gmail directement."
+            f"→ [Voir le prospect]({CRM_URL}/prospects/{prospect.id})"
         )
         return "human_required"
 
-    # Vérifier si on a toutes les infos pour faire le devis
-    infos_completes = all([
-        infos.get("type_prestation"),
-        infos.get("superficie_m2"),
-        infos.get("frequence"),
-    ])
+    # Vérifier si on a toutes les infos
+    infos_completes = all([infos.get("type_prestation"), infos.get("superficie_m2"), infos.get("frequence")])
 
     if infos_completes:
-        # Générer le devis avec les vrais chiffres
         calcul = calculate_devis(infos)
         db = SessionLocal()
         try:
@@ -430,28 +306,32 @@ def process_qualification(prospect: Prospect, message: str, service, sujet: str 
                 service_type_override=calcul["type_prestation"],
             )
 
-            email_body = f"""Bonjour,
+            email_body = (
+                f"Bonjour,\n\n"
+                f"Suite à notre échange, veuillez trouver ci-joint votre devis personnalisé.\n\n"
+                f"Récapitulatif :\n"
+                f"• Prestation : {calcul['description']}\n"
+                f"• Superficie : {infos.get('superficie_m2')} m²\n"
+                f"• Fréquence : {infos.get('frequence', 'ponctuel')}\n"
+                f"• Montant HT : {calcul['montant_ht']:,.2f} €\n"
+                f"• Montant TTC : {calcul['montant_ttc']:,.2f} €\n\n"
+                f"Ce devis est valable 30 jours.\n\n"
+                f"Cordialement,\nMohand Sari — Proprexis\n"
+                f"contact.proprexis@gmail.com | 06 XX XX XX XX"
+            )
 
-Suite à notre échange, veuillez trouver ci-joint votre devis personnalisé.
+            # Générer et joindre les CGV
+            from app.utils.cgv_annexe import generate_cgv_pdf
+            cgv_path = f"/tmp/cgv_proprexis.pdf"
+            with open(cgv_path, 'wb') as f:
+                f.write(generate_cgv_pdf())
 
-Récapitulatif :
-• Prestation : {calcul['description']}
-• Superficie : {infos.get('superficie_m2')} m²
-• Fréquence : {infos.get('frequence', 'ponctuel')}
-• Montant HT : {calcul['montant_ht']:,.2f} €
-• Montant TTC : {calcul['montant_ttc']:,.2f} €
+            send_email(service, to=email, subject=f"Votre devis Proprexis — {devis.numero}",
+                      body=email_body, pdf_path=pdf_path, cgv_path=cgv_path)
 
-Ce devis est valable 30 jours. N'hésitez pas à nous contacter pour toute question.
-
-Cordialement,
-Mohand Sari — Proprexis
-contact.proprexis@gmail.com | 06 XX XX XX XX"""
-
-            send_email(service, to=email, subject=f"Votre devis Proprexis — {devis.numero}", body=email_body, pdf_path=pdf_path)
-
-            # Marquer le devis comme envoyé et nettoyer la conversation
-            devis_envoyes.add(email)
-            del conversations[email]
+            historique_final = historique + [f"Proprexis [Votre devis {devis.numero}]: Devis envoyé — {calcul['montant_ttc']:.0f}€ TTC"]
+            store.update(email, historique=historique_final)
+            store.mark_devis_envoye(email)
 
             tg(
                 f"🎯 *Devis envoyé !*\n\n"
@@ -465,11 +345,11 @@ contact.proprexis@gmail.com | 06 XX XX XX XX"""
         finally:
             db.close()
     else:
-        # Poser les questions manquantes
-        email_body = generate_qualification_email(prospect_context, infos, conv["historique"])
+        email_body = generate_qualification_email(prospect_context, infos, historique)
         if email_body:
             send_email(service, to=email, subject="Re: Votre demande de nettoyage — Proprexis", body=email_body)
-            conv["historique"].append(f"Proprexis [Re: qualification]: {email_body[:200]}")
+            hist = historique + [f"Proprexis [Re: qualification]: {email_body[:200]}"]
+            store.update(email, historique=hist)
             return "qualification_sent"
 
     return "no_action"

@@ -4,6 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Thème sombre (défaut) ── */
 :root {
   --bg:          #0a0d14;
   --surface:     #0f1520;
@@ -21,6 +22,24 @@
   --yellow:      #eab308;
 }
 
+/* ── Thème clair ── */
+[data-theme="light"] {
+  --bg:          #f4f6fb;
+  --surface:     #ffffff;
+  --card:        #ffffff;
+  --border:      #e2e8f0;
+  --border-soft: #edf2f7;
+  --text:        #0f172a;
+  --text-muted:  #64748b;
+  --text-dim:    #94a3b8;
+  --accent:      #3b82f6;
+  --accent-glow: rgba(59,130,246,0.10);
+  --green:       #16a34a;
+  --orange:      #ea6c0a;
+  --red:         #dc2626;
+  --yellow:      #ca8a04;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -30,6 +49,7 @@ html, body {
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
 }
 
 h1, h2, h3, h4, .font-display {
@@ -45,6 +65,11 @@ h1, h2, h3, h4, .font-display {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+[data-theme="light"] .card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .badge-haute   { background: rgba(34,197,94,0.12);  color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
