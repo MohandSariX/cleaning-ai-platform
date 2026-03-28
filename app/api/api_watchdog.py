@@ -60,3 +60,10 @@ def test_gmail():
         return {"status": "ok", "email": profile['emailAddress'], "messages": profile['messagesTotal']}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@router.get("/watchdog/token-health")
+def token_health():
+    """Verifie l etat du token Gmail."""
+    from app.agents.gmail_agent import check_token_health
+    return check_token_health()

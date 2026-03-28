@@ -12,7 +12,8 @@ import {
 
 import { SchedulerPanel } from '@/components/SchedulerPanel'
 import { RapportPanel } from '@/components/RapportPanel'
-
+import { OutreachPanel } from '@/components/OutreachPanel'
+import { GmailStatusPanel } from '@/components/GmailStatusPanel'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -386,6 +387,8 @@ export default function DashboardPage() {
       <ScrapePanel onDone={loadStats} />
       <SchedulerPanel />
       <RapportPanel />
+      <GmailStatusPanel />
+      <OutreachPanel />   
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>

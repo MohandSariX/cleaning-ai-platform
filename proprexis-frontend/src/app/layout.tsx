@@ -2,6 +2,7 @@
 import './globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   LayoutDashboard, Users, UserCheck,
   FileText, Briefcase, Calendar, CreditCard, Settings
@@ -78,7 +79,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })}
 
             {/* Bottom */}
-            <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid var(--border-soft)' }}>
+            <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <ThemeToggle />
               <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
                 Version 0.1.0 — Beta
               </div>

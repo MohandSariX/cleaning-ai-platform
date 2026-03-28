@@ -43,16 +43,54 @@ CRM_URL = "http://localhost:3000"
 
 
 def get_gmail_service():
-    """Retourne un service Gmail authentifié."""
+    """Retourne un service Gmail authentifie avec refresh automatique silencieux."""
     creds = None
     if os.path.exists(TOKEN_PATH):
         creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            with open(TOKEN_PATH, 'w') as f:
-                f.write(creds.to_json())
-    return build('gmail', 'v1', credentials=creds)
+    if not creds:
+        raise RuntimeError("token.json introuvable — relance la generation du token")
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                with open(TOKEN_PATH, 'w') as f:
+                    f.write(creds.to_json())
+                logger.info("Token Gmail rafraichi automatiquement")
+            except Exception as e:
+                logger.error(f"Refresh token echoue : {e}")
+                try:
+                    from app.agents.telegram_notifier import send_message
+                    send_message("Token Gmail expire. Rafraichissement echoue. Relance regenerate_token.py")
+                except Exception:
+                    pass
+                raise
+        else:
+            raise RuntimeError("Token Gmail invalide — pas de refresh_token")
+    return build("gmail", "v1", credentials=creds)
+
+
+def check_token_health() -> dict:
+    """Verifie l etat du token Gmail pour le dashboard."""
+    try:
+        if not os.path.exists(TOKEN_PATH):
+            return {"status": "missing"}
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
+        if not creds.valid and not creds.refresh_token:
+            return {"status": "invalid"}
+        if creds.expired and creds.refresh_token:
+            return {"status": "expired_refreshable"}
+        if creds.valid and creds.expiry:
+            import datetime as dt
+            from datetime import timezone
+            expiry = creds.expiry
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            now = dt.datetime.now(timezone.utc)
+            remaining = (expiry - now).total_seconds() / 3600
+            return {"status": "valid", "expires_in_hours": round(remaining, 1)}
+        return {"status": "valid", "expires_in_hours": None}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 def detect_intention(subject: str, body: str) -> dict:
@@ -112,20 +150,21 @@ def get_email_body(msg_payload) -> str:
     return body[:2000]  # Limiter à 2000 chars
 
 
-def send_email(service, to: str, subject: str, body: str, pdf_path: str = None):
-    """Envoie un email avec pièce jointe optionnelle."""
+def send_email(service, to: str, subject: str, body: str, pdf_path: str = None, cgv_path: str = None):
+    """Envoie un email avec pièces jointes optionnelles."""
     msg = MIMEMultipart()
     msg['to'] = to
     msg['subject'] = subject
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-    if pdf_path and os.path.exists(pdf_path):
-        with open(pdf_path, 'rb') as f:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(f.read())
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(pdf_path)}"')
-            msg.attach(part)
+    for path in [pdf_path, cgv_path]:
+        if path and os.path.exists(path):
+            with open(path, 'rb') as f:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(f.read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(path)}"')
+                msg.attach(part)
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
     service.users().messages().send(userId='me', body={'raw': raw}).execute()

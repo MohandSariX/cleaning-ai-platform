@@ -20,6 +20,7 @@ from app.agents.lead_scorer import run_lead_scoring
 from app.agents.watchdog import run_watchdog
 from app.agents.telegram_notifier import notify_scraping_termine, notify_prospects_nuit
 from app.agents.gmail_agent import check_inbox
+from app.agents.email_outreach_agent import run_outreach_batch, run_relances
 import logging
 
 logger = logging.getLogger("proprexis.scheduler")
@@ -257,6 +258,22 @@ def start_scheduler():
         check_inbox,
         trigger=CronTrigger(minute="*/15", timezone="Europe/Paris"),
         id="gmail_check",
+        replace_existing=True,
+    )
+
+    # Job 4 — Envoi emails prospection toutes les 10 min (9h-18h)
+    _scheduler.add_job(
+        run_outreach_batch,
+        trigger=CronTrigger(minute="*/10", timezone="Europe/Paris"),
+        id="outreach_batch",
+        replace_existing=True,
+    )
+
+    # Job 5 — Relances J+3 chaque jour à 10h
+    _scheduler.add_job(
+        run_relances,
+        trigger=CronTrigger(hour=10, minute=0, timezone="Europe/Paris"),
+        id="relances",
         replace_existing=True,
     )
 

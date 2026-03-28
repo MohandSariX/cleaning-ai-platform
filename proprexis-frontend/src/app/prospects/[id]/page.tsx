@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react'
 import { fetchProspect, updateProspect } from '@/lib/api'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Mail, Phone, Globe, MapPin, Building2, Star, Loader2, Check, Copy, Edit2 } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Globe, MapPin, Building2, Star, Loader2, Check, Copy, Edit2, MessageSquare, Clock, Send, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 type Prospect = {
   id: number; company_name: string; city: string; address: string
@@ -431,6 +433,177 @@ function EmailPanel({ prospect, onStatusChange }: { prospect: Prospect; onStatus
   )
 }
 
+
+// ── Panneau Conversation ──────────────────────────────────────────────────────
+type ConvData = {
+  status: string
+  infos: Record<string, any>
+  historique: string[]
+  nb_echanges: number
+}
+
+function ConversationPanel({ prospectId }: { prospectId: number }) {
+  const [conv, setConv] = useState<ConvData | null>(null)
+  const [emails, setEmails] = useState<any[]>([])
+  const [open, setOpen] = useState(true)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/api/prospects/${prospectId}/conversation`).then(r => r.ok ? r.json() : null),
+      fetch(`${API}/api/prospects/${prospectId}/emails`).then(r => r.json()),
+    ]).then(([c, e]) => {
+      setConv(c)
+      setEmails(e || [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [prospectId])
+
+  if (loading) return null
+  if (!conv && !emails.length) return null
+
+  const statusConfig: Record<string, { label: string; color: string }> = {
+    en_cours:      { label: 'En cours',      color: '#3b82f6' },
+    devis_envoye:  { label: 'Devis envoyé',  color: '#f97316' },
+    signe:         { label: 'Signé ✓',       color: '#22c55e' },
+    perdu:         { label: 'Perdu',          color: '#64748b' },
+    en_attente:    { label: 'En attente',     color: '#a855f7' },
+  }
+
+  const sc = conv ? (statusConfig[conv.status] || { label: conv.status, color: '#64748b' }) : null
+
+  const typeColor: Record<string, string> = {
+    prospection: '#3b82f6', relance: '#f97316',
+    qualification: '#a855f7', devis: '#22c55e',
+  }
+  const typeLabel: Record<string, string> = {
+    prospection: 'Prospection', relance: 'Relance',
+    qualification: 'Qualification', devis: 'Devis',
+  }
+
+  return (
+    <div className="card" style={{ padding: 24, gridColumn: '1 / -1' }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: open ? 20 : 0 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <MessageSquare size={15} color="var(--accent)" />
+          <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Conversation & Emails
+          </h3>
+          {conv && sc && (
+            <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700, background: `${sc.color}18`, color: sc.color }}>
+              {sc.label}
+            </span>
+          )}
+          {emails.length > 0 && (
+            <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: 'var(--border)', color: 'var(--text-muted)' }}>
+              {emails.length} email{emails.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        {open ? <ChevronUp size={14} color="var(--text-muted)" /> : <ChevronDown size={14} color="var(--text-muted)" />}
+      </div>
+
+      {open && (
+        <div style={{ display: 'grid', gridTemplateColumns: conv ? '1fr 1fr' : '1fr', gap: 20 }}>
+
+          {/* Infos collectées */}
+          {conv && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+                Infos collectées ({conv.nb_echanges} échange{conv.nb_echanges > 1 ? 's' : ''})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {[
+                  { key: 'type_prestation', label: 'Type' },
+                  { key: 'superficie_m2', label: 'Superficie' },
+                  { key: 'frequence', label: 'Fréquence' },
+                  { key: 'ville', label: 'Ville' },
+                ].map(({ key, label }) => (
+                  <div key={key} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+                    <span style={{ color: 'var(--text-muted)', minWidth: 80 }}>{label}</span>
+                    <span style={{ fontWeight: 600, color: conv.infos[key] ? 'var(--text)' : 'var(--text-muted)' }}>
+                      {conv.infos[key] ? String(conv.infos[key]) + (key === 'superficie_m2' ? ' m²' : '') : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Historique dialogue */}
+              {conv.historique.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                    Dialogue IA
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                    {conv.historique.map((h, i) => {
+                      const isProprexis = h.startsWith('Proprexis')
+                      return (
+                        <div key={i} style={{
+                          padding: '7px 10px', borderRadius: 7, fontSize: 11,
+                          background: isProprexis ? '#3b82f610' : 'var(--surface)',
+                          border: `1px solid ${isProprexis ? '#3b82f620' : 'var(--border)'}`,
+                          color: 'var(--text-muted)',
+                          alignSelf: isProprexis ? 'flex-end' : 'flex-start',
+                          maxWidth: '90%',
+                        }}>
+                          <span style={{ fontWeight: 600, color: isProprexis ? '#3b82f6' : 'var(--text)', marginRight: 6 }}>
+                            {isProprexis ? '🤖' : '👤'}
+                          </span>
+                          {h.replace(/^(Proprexis|Prospect)\s*\[.*?\]:\s*/, '')}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Historique emails */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+              Emails envoyés
+            </div>
+            {emails.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Aucun email envoyé</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {emails.map((log: any) => {
+                  const color = typeColor[log.email_type] || '#64748b'
+                  return (
+                    <div key={log.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 10px', borderRadius: 7,
+                      background: `${color}08`, border: `1px solid ${color}20`
+                    }}>
+                      <Send size={11} color={color} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                          {log.subject || '(sans sujet)'}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {new Date(log.sent_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 5, background: `${color}20`, color, fontWeight: 600 }}>
+                        {typeLabel[log.email_type] || log.email_type}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProspectPage() {
   const { id } = useParams()
   const [prospect, setProspect] = useState<Prospect | null>(null)
@@ -505,6 +678,7 @@ export default function ProspectPage() {
         </div>
 
         <EmailPanel prospect={prospect} onStatusChange={handleStatusChange} />
+        <ConversationPanel prospectId={prospect.id} />
 
         <div className="card" style={{ padding: 24, gridColumn: '1 / -1' }}>
           <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
