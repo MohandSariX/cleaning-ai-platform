@@ -25,6 +25,8 @@ from app.agents.pappers_agent import enrich_batch as pappers_enrich_batch
 from app.agents.permis_construire_agent import run_permis_scraper
 from app.agents.dvf_agent import run_dvf_scraper
 from app.agents.email_finder import find_emails_batch
+from app.agents.claude_assistant import generate_daily_briefing, generate_weekly_report
+from app.agents.telegram_notifier import send_message
 from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
 import logging
 
@@ -107,6 +109,30 @@ DAY_TO_DEPT = {
     5: "91",  # Samedi
     6: "94",  # Dimanche (2ème passage Val-de-Marne — priorité zone)
 }
+
+
+# ══════════════════════════════════════════════════════════════
+#  FONCTIONS BRIEFING CLAUDE
+# ══════════════════════════════════════════════════════════════
+
+def send_daily_briefing():
+    """Envoie le briefing quotidien Claude sur Telegram."""
+    try:
+        briefing = generate_daily_briefing()
+        send_message(briefing)
+        logger.info("✅ Briefing quotidien envoyé")
+    except Exception as e:
+        logger.error(f"Erreur briefing quotidien : {e}")
+
+
+def send_weekly_report():
+    """Envoie le rapport hebdomadaire Claude sur Telegram."""
+    try:
+        report = generate_weekly_report()
+        send_message(report)
+        logger.info("✅ Rapport hebdomadaire envoyé")
+    except Exception as e:
+        logger.error(f"Erreur rapport hebdomadaire : {e}")
 
 # ══════════════════════════════════════════════════════════════
 #  ÉTAT DU SCHEDULER (exposé via API)
@@ -315,6 +341,23 @@ def start_scheduler():
         replace_existing=True,
     )
 
+
+
+    # Job 10 — Briefing quotidien Claude à 8h
+    _scheduler.add_job(
+        send_daily_briefing,
+        trigger=CronTrigger(hour=8, minute=0, timezone="Europe/Paris"),
+        id="claude_briefing_daily",
+        replace_existing=True,
+    )
+
+    # Job 11 — Rapport hebdomadaire Claude (lundi 9h)
+    _scheduler.add_job(
+        send_weekly_report,
+        trigger=CronTrigger(day_of_week='mon', hour=9, minute=0, timezone="Europe/Paris"),
+        id="claude_report_weekly",
+        replace_existing=True,
+    )
 
     _scheduler.start()
     run_watchdog()  # Rapport immédiat au démarrage
