@@ -3,8 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.database import Base, engine
-from app.models import prospect, client, devis, chantier, facture, email_log, conversation, activity_log
-from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler, api_watchdog, api_outreach, api_devis_rules, api_pappers, api_activity, api_permis, api_email_finder
+from app.models import prospect, client, devis, chantier, facture, email_log, conversation, activity_log, ai_memory
+from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler, api_watchdog, api_outreach, api_devis_rules, api_pappers, api_activity, api_permis, api_email_finder, api_dvf, api_claude
 from app.scheduler import start_scheduler, stop_scheduler
 
 load_dotenv()
@@ -43,7 +43,9 @@ app.include_router(api_devis_rules.router,   prefix="/api")
 app.include_router(api_pappers.router,       prefix="/api")
 app.include_router(api_activity.router,      prefix="/api")
 app.include_router(api_permis.router,        prefix="/api")
+app.include_router(api_dvf.router,           prefix="/api")
 app.include_router(api_email_finder.router,  prefix="/api")
+app.include_router(api_claude.router,        prefix="/api")
 
 
 @app.get("/")

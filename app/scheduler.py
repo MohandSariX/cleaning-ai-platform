@@ -23,6 +23,7 @@ from app.agents.gmail_agent import check_inbox
 from app.agents.email_outreach_agent import run_outreach_batch, run_relances
 from app.agents.pappers_agent import enrich_batch as pappers_enrich_batch
 from app.agents.permis_construire_agent import run_permis_scraper
+from app.agents.dvf_agent import run_dvf_scraper
 from app.agents.email_finder import find_emails_batch
 from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
 import logging
@@ -290,7 +291,15 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # Job 7 — Permis de construire : 1er de chaque mois à 5h
+    # Job 7 — DVF (Transactions immobilières) : 1er de chaque mois à 4h
+    _scheduler.add_job(
+        run_dvf_scraper,
+        trigger=CronTrigger(day=1, hour=4, minute=0, timezone="Europe/Paris"),
+        id="dvf_scraper",
+        replace_existing=True,
+    )
+
+    # Job 8 — Permis de construire : 1er de chaque mois à 5h
     _scheduler.add_job(
         run_permis_scraper,
         trigger=CronTrigger(day=1, hour=5, minute=0, timezone="Europe/Paris"),
@@ -298,7 +307,7 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # Job 8 — Email finder quotidien à 7h
+    # Job 9 — Email finder quotidien à 7h
     _scheduler.add_job(
         find_emails_batch,
         trigger=CronTrigger(hour=7, minute=0, timezone="Europe/Paris"),
