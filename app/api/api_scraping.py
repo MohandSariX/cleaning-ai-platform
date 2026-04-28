@@ -58,3 +58,28 @@ def stop_scrape():
     scrape_status["running"] = False
     scrape_status["log"].append("⛔ Arrêté manuellement")
     return {"status": "stopped"}
+
+
+@router.post("/scoring/run")
+def run_scoring():
+    """
+    Lance le rescoring complet sur tous les prospects.
+    Système 300 points : joignabilité (80) + identité (60) + potentiel (80) + signaux (80).
+    Normalise à /100 pour stockage.
+    """
+    global scrape_status
+    if scrape_status["running"]:
+        raise HTTPException(status_code=409, detail="Un scraping est déjà en cours")
+
+    try:
+        scrape_status["running"] = True
+        scrape_status["log"] = []
+        scrape_status["log"].append("⚙️ Rescoring enrichi 300pts en cours...")
+        run_lead_scoring()
+        scrape_status["log"].append("✅ Rescoring terminé")
+        scrape_status["running"] = False
+        return {"status": "completed", "message": "Scoring enrichi exécuté"}
+    except Exception as e:
+        scrape_status["log"].append(f"❌ Erreur : {str(e)}")
+        scrape_status["running"] = False
+        raise HTTPException(status_code=500, detail=str(e))
