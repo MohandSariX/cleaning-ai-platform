@@ -6,6 +6,7 @@ from app.core.database import Base, engine
 from app.models import prospect, client, devis, chantier, facture, email_log, conversation, activity_log, ai_memory
 from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler, api_watchdog, api_outreach, api_devis_rules, api_pappers, api_activity, api_permis, api_email_finder, api_dvf, api_claude
 from app.scheduler import start_scheduler, stop_scheduler
+from app.agents.telegram_polling import start_polling, stop_polling
 
 load_dotenv()
 
@@ -14,11 +15,13 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Démarrage — lancer le scheduler
+    # Démarrage — lancer le scheduler + Telegram polling
     start_scheduler()
+    start_polling()
     yield
     # Arrêt — stopper proprement
     stop_scheduler()
+    stop_polling()
 
 
 app = FastAPI(title="Proprexis CRM", lifespan=lifespan)

@@ -314,3 +314,43 @@ def init_memory():
     from app.agents.claude_memory import initialize_default_memories
     initialize_default_memories()
     return {"status": "initialized"}
+
+
+# ══════════════════════════════════════════════════════════════
+#  TELEGRAM MESSAGE HANDLER — Pour webhook ET polling
+# ══════════════════════════════════════════════════════════════
+
+def handle_telegram_message(text: str, from_user: str = "Mohand") -> str:
+    """
+    Traite un message Telegram (appelé par webhook OU polling).
+
+    Args:
+        text: Texte du message
+        from_user: Nom de l'utilisateur
+
+    Returns:
+        Réponse à envoyer (déjà envoyée via send_message)
+    """
+    try:
+        # Commandes spéciales
+        if text.startswith("/"):
+            response_text = handle_command(text)
+        else:
+            # Conversation normale → IA
+            import asyncio
+            response_text = asyncio.run(handle_conversation(text, from_user))
+
+        # Envoyer la réponse via Telegram
+        send_message(response_text)
+
+        # Logger la conversation
+        store_message("mohand", text)
+        store_message("claude", response_text)
+
+        return response_text
+
+    except Exception as e:
+        logger.error(f"Erreur handle_telegram_message : {e}")
+        error_msg = f"❌ Erreur : {str(e)}"
+        send_message(error_msg)
+        return error_msg
