@@ -27,6 +27,7 @@ from app.agents.dvf_agent import run_dvf_scraper
 from app.agents.email_finder import find_emails_batch
 from app.agents.claude_assistant import generate_daily_briefing, generate_weekly_report
 from app.agents.telegram_notifier import send_message
+from app.agents.activity_logger import log_claude_briefing
 from app.agents.claude_optimizer import run_optimization_cycle
 from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
 import logging
@@ -121,6 +122,7 @@ def send_daily_briefing():
     try:
         briefing = generate_daily_briefing()
         send_message(briefing)
+        log_claude_briefing("daily", "Mohand", briefing[:200])
         logger.info("✅ Briefing quotidien envoyé")
     except Exception as e:
         logger.error(f"Erreur briefing quotidien : {e}")
@@ -131,6 +133,7 @@ def send_weekly_report():
     try:
         report = generate_weekly_report()
         send_message(report)
+        log_claude_briefing("weekly", "Mohand", report[:200])
         logger.info("✅ Rapport hebdomadaire envoyé")
     except Exception as e:
         logger.error(f"Erreur rapport hebdomadaire : {e}")

@@ -9,6 +9,7 @@ from app.core.database import SessionLocal
 from app.models.prospect import Prospect
 from app.models.email_log import EmailLog
 from app.agents.claude_memory import log_decision
+from app.agents.activity_logger import log_claude_tool_call
 from app.agents.pappers_agent import enrich_prospect as pappers_enrich
 from app.agents.gmail_agent import send_email as gmail_send
 from app.agents.email_templates import get_template
@@ -505,8 +506,36 @@ def execute_tool(tool_name: str, **kwargs) -> Any:
         return {"error": f"Tool {tool_name} not found"}
 
     tool_func = TOOLS_REGISTRY[tool_name]["function"]
+    
+    # Mesurer temps d'exécution
+    import time
+    start_time = time.time()
+    
     try:
-        return tool_func(**kwargs)
+        result = tool_func(**kwargs)
+        execution_time_ms = (time.time() - start_time) * 1000
+        
+        # Logger l'exécution
+        log_claude_tool_call(
+            tool_name=tool_name,
+            arguments=kwargs,
+            result=result,
+            success=True,
+            execution_time_ms=execution_time_ms
+        )
+        
+        return result
     except Exception as e:
+        execution_time_ms = (time.time() - start_time) * 1000
         logger.error(f"Error executing tool {tool_name}: {e}")
+        
+        # Logger l'erreur
+        log_claude_tool_call(
+            tool_name=tool_name,
+            arguments=kwargs,
+            result=str(e),
+            success=False,
+            execution_time_ms=execution_time_ms
+        )
+        
         return {"error": str(e)}

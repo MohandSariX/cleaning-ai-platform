@@ -11,7 +11,9 @@ import json
 router = APIRouter()
 
 EVENT_TYPES = ["email_sent", "email_received", "qualification", "devis_sent",
-               "scraping", "enrichment", "system", "error", "scheduler", "watchdog"]
+               "scraping", "enrichment", "system", "error", "scheduler", "watchdog",
+               "claude_tool", "claude_decision", "claude_briefing", "claude_optimization",
+               "claude_escalation", "claude_conversation", "claude_learning"]
 
 
 @router.get("/activity/logs")
@@ -144,3 +146,138 @@ def get_stats():
         }
     finally:
         db.close()
+
+
+@router.get("/activity/claude/tools")
+def get_claude_tools(days: int = 7, limit: int = 50):
+    """Historique des tools Claude exécutés."""
+    db = SessionLocal()
+    try:
+        since = datetime.now() - timedelta(days=days)
+        tools = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_tool",
+            ActivityLog.created_at >= since
+        ).order_by(ActivityLog.created_at.desc()).limit(limit).all()
+
+        return {
+            "total": len(tools),
+            "tools": [{
+                "tool_name": t.event_sub,
+                "message": t.message,
+                "status": t.status,
+                "details": json.loads(t.details_json) if t.details_json else None,
+                "created_at": t.created_at.isoformat() if t.created_at else None
+            } for t in tools]
+        }
+    finally:
+        db.close()
+
+
+@router.get("/activity/claude/decisions")
+def get_claude_decisions(days: int = 7, limit: int = 50):
+    """Historique des décisions autonomes de Claude."""
+    db = SessionLocal()
+    try:
+        since = datetime.now() - timedelta(days=days)
+        decisions = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_decision",
+            ActivityLog.created_at >= since
+        ).order_by(ActivityLog.created_at.desc()).limit(limit).all()
+
+        return {
+            "total": len(decisions),
+            "decisions": [{
+                "decision_type": d.event_sub,
+                "message": d.message,
+                "reasoning": d.ia_decision,
+                "details": json.loads(d.details_json) if d.details_json else None,
+                "created_at": d.created_at.isoformat() if d.created_at else None
+            } for d in decisions]
+        }
+    finally:
+        db.close()
+
+
+@router.get("/activity/claude/escalations")
+def get_claude_escalations(days: int = 7):
+    """Historique des escalations à Mohand."""
+    db = SessionLocal()
+    try:
+        since = datetime.now() - timedelta(days=days)
+        escalations = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_escalation",
+            ActivityLog.created_at >= since
+        ).order_by(ActivityLog.created_at.desc()).all()
+
+        return {
+            "total": len(escalations),
+            "urgent": sum(1 for e in escalations if e.event_sub == "urgent"),
+            "high": sum(1 for e in escalations if e.event_sub == "high"),
+            "medium": sum(1 for e in escalations if e.event_sub == "medium"),
+            "low": sum(1 for e in escalations if e.event_sub == "low"),
+            "escalations": [{
+                "priority": e.event_sub,
+                "reason": e.message,
+                "details": json.loads(e.details_json) if e.details_json else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None
+            } for e in escalations]
+        }
+    finally:
+        db.close()
+
+
+@router.get("/activity/claude/stats")
+def get_claude_stats(days: int = 7):
+    """Statistiques globales Claude."""
+    db = SessionLocal()
+    try:
+        since = datetime.now() - timedelta(days=days)
+
+        # Compter par type d'événement
+        tools_executed = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_tool",
+            ActivityLog.created_at >= since
+        ).count()
+
+        decisions_made = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_decision",
+            ActivityLog.created_at >= since
+        ).count()
+
+        escalations = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_escalation",
+            ActivityLog.created_at >= since
+        ).count()
+
+        optimizations = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_optimization",
+            ActivityLog.created_at >= since
+        ).count()
+
+        conversations = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_conversation",
+            ActivityLog.created_at >= since
+        ).count()
+
+        briefings = db.query(ActivityLog).filter(
+            ActivityLog.event_type == "claude_briefing",
+            ActivityLog.created_at >= since
+        ).count()
+
+        # Taux autonomie (décisions / (décisions + escalations))
+        total_decisions = decisions_made + escalations
+        autonomy_rate = round((decisions_made / total_decisions * 100), 1) if total_decisions > 0 else 0
+
+        return {
+            "period_days": days,
+            "tools_executed": tools_executed,
+            "autonomous_decisions": decisions_made,
+            "escalations": escalations,
+            "autonomy_rate_pct": autonomy_rate,
+            "optimizations_applied": optimizations,
+            "conversations": conversations,
+            "briefings_sent": briefings
+        }
+    finally:
+        db.close()
+
