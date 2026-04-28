@@ -224,3 +224,148 @@ def get_daily_summary(target_date: date = None) -> dict:
         }
     finally:
         db.close()
+
+# ══════════════════════════════════════════════════════════════
+#  CLAUDE IA — Nouveaux logs Phase 3
+# ══════════════════════════════════════════════════════════════
+
+def log_claude_tool_call(tool_name: str, arguments: dict, result: any,
+                         success: bool = True, execution_time_ms: float = None):
+    """Tool Claude exécuté (function calling)."""
+    emoji = "🔧" if success else "❌"
+    status = "success" if success else "error"
+    log(
+        event_type="claude_tool",
+        event_sub=tool_name,
+        message=f"{emoji} Tool '{tool_name}' exécuté",
+        status=status,
+        details={
+            "tool": tool_name,
+            "arguments": arguments,
+            "result": str(result)[:500],  # Limiter taille
+            "execution_time_ms": execution_time_ms
+        },
+        ia_decision=f"Tool {tool_name} called with {len(arguments)} args"
+    )
+
+
+def log_claude_decision(decision_type: str, action_taken: str,
+                        reasoning: str, autonomous: bool,
+                        escalated: bool = False, details: dict = None):
+    """Décision autonome de Claude."""
+    if escalated:
+        emoji = "⚠️"
+        status = "warning"
+    elif autonomous:
+        emoji = "🤖"
+        status = "success"
+    else:
+        emoji = "🙋"
+        status = "info"
+
+    log(
+        event_type="claude_decision",
+        event_sub=decision_type,
+        message=f"{emoji} {decision_type} — {action_taken}",
+        status=status,
+        details={
+            "decision_type": decision_type,
+            "action": action_taken,
+            "autonomous": autonomous,
+            "escalated": escalated,
+            **(details or {})
+        },
+        ia_decision=reasoning
+    )
+
+
+def log_claude_briefing(briefing_type: str, recipient: str = "Mohand",
+                        content_preview: str = None):
+    """Briefing Claude envoyé."""
+    emoji = "🌅" if briefing_type == "daily" else "📊"
+    log(
+        event_type="claude_briefing",
+        event_sub=briefing_type,
+        message=f"{emoji} Briefing {briefing_type} envoyé à {recipient}",
+        status="success",
+        details={
+            "type": briefing_type,
+            "recipient": recipient,
+            "preview": content_preview[:200] if content_preview else None
+        }
+    )
+
+
+def log_claude_optimization(optimization_type: str, action: str,
+                            metrics_before: dict = None, metrics_after: dict = None):
+    """Optimisation automatique de Claude."""
+    log(
+        event_type="claude_optimization",
+        event_sub=optimization_type,
+        message=f"🔧 Optimization: {action}",
+        status="success",
+        details={
+            "type": optimization_type,
+            "action": action,
+            "before": metrics_before,
+            "after": metrics_after
+        },
+        ia_decision=f"Auto-optimization: {action}"
+    )
+
+
+def log_claude_escalation(reason: str, context: dict, priority: str,
+                          decision_id: int = None):
+    """Escalation à humain."""
+    emojis = {"urgent": "🚨", "high": "🔴", "medium": "🟠", "low": "🟡"}
+    emoji = emojis.get(priority, "⚠️")
+
+    log(
+        event_type="claude_escalation",
+        event_sub=priority,
+        message=f"{emoji} Escalation {priority}: {reason}",
+        status="warning",
+        details={
+            "reason": reason,
+            "priority": priority,
+            "context": context,
+            "decision_id": decision_id
+        },
+        ia_decision=f"Escalated: {reason}"
+    )
+
+
+def log_claude_conversation(message_from: str, message_preview: str,
+                             response_preview: str = None):
+    """Conversation Telegram avec Claude."""
+    emoji = "💬"
+    log(
+        event_type="claude_conversation",
+        event_sub="telegram",
+        message=f"{emoji} Conversation: {message_from}",
+        status="info",
+        details={
+            "from": message_from,
+            "message": message_preview[:200],
+            "response": response_preview[:200] if response_preview else None
+        }
+    )
+
+
+def log_claude_learning(learning_type: str, pattern: str, confidence: float,
+                        sample_size: int = None):
+    """Claude a appris un nouveau pattern."""
+    log(
+        event_type="claude_learning",
+        event_sub=learning_type,
+        message=f"🧠 Learning: {pattern}",
+        status="success",
+        metric_value=confidence,
+        details={
+            "type": learning_type,
+            "pattern": pattern,
+            "confidence": confidence,
+            "sample_size": sample_size
+        },
+        ia_decision=f"Pattern learned: {pattern}"
+    )

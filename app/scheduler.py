@@ -23,7 +23,12 @@ from app.agents.gmail_agent import check_inbox
 from app.agents.email_outreach_agent import run_outreach_batch, run_relances
 from app.agents.pappers_agent import enrich_batch as pappers_enrich_batch
 from app.agents.permis_construire_agent import run_permis_scraper
+from app.agents.dvf_agent import run_dvf_scraper
 from app.agents.email_finder import find_emails_batch
+from app.agents.claude_assistant import generate_daily_briefing, generate_weekly_report
+from app.agents.telegram_notifier import send_message
+from app.agents.activity_logger import log_claude_briefing
+from app.agents.claude_optimizer import run_optimization_cycle
 from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
 import logging
 
@@ -106,6 +111,32 @@ DAY_TO_DEPT = {
     5: "91",  # Samedi
     6: "94",  # Dimanche (2ème passage Val-de-Marne — priorité zone)
 }
+
+
+# ══════════════════════════════════════════════════════════════
+#  FONCTIONS BRIEFING CLAUDE
+# ══════════════════════════════════════════════════════════════
+
+def send_daily_briefing():
+    """Envoie le briefing quotidien Claude sur Telegram."""
+    try:
+        briefing = generate_daily_briefing()
+        send_message(briefing)
+        log_claude_briefing("daily", "Mohand", briefing[:200])
+        logger.info("✅ Briefing quotidien envoyé")
+    except Exception as e:
+        logger.error(f"Erreur briefing quotidien : {e}")
+
+
+def send_weekly_report():
+    """Envoie le rapport hebdomadaire Claude sur Telegram."""
+    try:
+        report = generate_weekly_report()
+        send_message(report)
+        log_claude_briefing("weekly", "Mohand", report[:200])
+        logger.info("✅ Rapport hebdomadaire envoyé")
+    except Exception as e:
+        logger.error(f"Erreur rapport hebdomadaire : {e}")
 
 # ══════════════════════════════════════════════════════════════
 #  ÉTAT DU SCHEDULER (exposé via API)
@@ -290,7 +321,15 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # Job 7 — Permis de construire : 1er de chaque mois à 5h
+    # Job 7 — DVF (Transactions immobilières) : 1er de chaque mois à 4h
+    _scheduler.add_job(
+        run_dvf_scraper,
+        trigger=CronTrigger(day=1, hour=4, minute=0, timezone="Europe/Paris"),
+        id="dvf_scraper",
+        replace_existing=True,
+    )
+
+    # Job 8 — Permis de construire : 1er de chaque mois à 5h
     _scheduler.add_job(
         run_permis_scraper,
         trigger=CronTrigger(day=1, hour=5, minute=0, timezone="Europe/Paris"),
@@ -298,7 +337,7 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # Job 8 — Email finder quotidien à 7h
+    # Job 9 — Email finder quotidien à 7h
     _scheduler.add_job(
         find_emails_batch,
         trigger=CronTrigger(hour=7, minute=0, timezone="Europe/Paris"),
@@ -306,6 +345,32 @@ def start_scheduler():
         replace_existing=True,
     )
 
+
+
+    # Job 10 — Briefing quotidien Claude à 8h
+    _scheduler.add_job(
+        send_daily_briefing,
+        trigger=CronTrigger(hour=8, minute=0, timezone="Europe/Paris"),
+        id="claude_briefing_daily",
+        replace_existing=True,
+    )
+
+    # Job 11 — Rapport hebdomadaire Claude (lundi 9h)
+    _scheduler.add_job(
+        send_weekly_report,
+        trigger=CronTrigger(day_of_week='mon', hour=9, minute=0, timezone="Europe/Paris"),
+        id="claude_report_weekly",
+        replace_existing=True,
+    )
+
+
+    # Job 12 — Optimisation quotidienne Claude à 20h
+    _scheduler.add_job(
+        run_optimization_cycle,
+        trigger=CronTrigger(hour=20, minute=0, timezone="Europe/Paris"),
+        id="claude_optimizer_daily",
+        replace_existing=True,
+    )
 
     _scheduler.start()
     run_watchdog()  # Rapport immédiat au démarrage

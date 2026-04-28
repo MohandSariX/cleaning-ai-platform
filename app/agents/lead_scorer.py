@@ -1,3 +1,4 @@
+import re
 from sqlalchemy.orm import Session
 from app.models.prospect import Prospect
 from app.core.database import SessionLocal
@@ -41,16 +42,96 @@ SOCIAL_DOMAINS = [
     "youtube.com", "tiktok.com"
 ]
 
+# Industries cibles pour scoring signaux
+TARGET_INDUSTRIES = {
+    "high": ["btp", "construction", "immo", "immobilier", "promoteur", "promotion"],
+    "medium": ["syndic", "hotel", "restaurant", "restauration", "hôtel"],
+    "low": ["bureau", "commerce", "architecte", "cabinet"],
+}
+
 
 # ============================================================
-#  FONCTIONS DE SCORING
+#  EXTRACTEURS DE DONNÉES — Parse score_explanation
+# ============================================================
+
+def _extract_pappers_data(explanation: str) -> dict:
+    """
+    Extrait les données Pappers du champ score_explanation.
+    Retourne un dict avec : ca, dirigeant, siret, effectifs, actif
+    """
+    if not explanation:
+        return {}
+
+    data = {}
+
+    # CA : regex "CA : XXX €" ou "CA: XXX €"
+    ca_match = re.search(r'CA\s*:\s*([\d\s\.]+)\s*€', explanation, re.IGNORECASE)
+    if ca_match:
+        ca_str = ca_match.group(1).replace(" ", "").replace(".", "")
+        try:
+            data["ca"] = int(ca_str)
+        except:
+            data["ca"] = None
+
+    # Dirigeant : "Dirigeant : Nom Prénom"
+    dirigeant_match = re.search(r'Dirigeant\s*:\s*([^\n]+)', explanation, re.IGNORECASE)
+    if dirigeant_match:
+        data["dirigeant"] = dirigeant_match.group(1).strip()
+
+    # SIRET : 14 chiffres
+    siret_match = re.search(r'SIRET\s*:\s*(\d{14})', explanation)
+    if siret_match:
+        data["siret"] = siret_match.group(1)
+
+    # Effectifs : "Effectifs : N"
+    effectifs_match = re.search(r'Effectifs\s*:\s*(\d+)', explanation)
+    if effectifs_match:
+        try:
+            data["effectifs"] = int(effectifs_match.group(1))
+        except:
+            data["effectifs"] = None
+
+    # Statut actif : cherche "actif" (cas-insensible)
+    data["is_active"] = bool(re.search(r'\bactif\b', explanation, re.IGNORECASE))
+
+    # Source Pappers : bloc "Pappers" anywhere
+    data["has_pappers"] = "Pappers" in explanation
+
+    return data
+
+
+def _extract_permis_data(explanation: str) -> bool:
+    """
+    Détecte si "Source : Permis de construire accordé" est présent.
+    Retourne True si présent.
+    """
+    if not explanation:
+        return False
+    return "Source : Permis de construire" in explanation or "Permis de construire accordé" in explanation
+
+
+def _extract_dvf_data(explanation: str) -> bool:
+    """
+    Détecte si source DVF est mentionnée.
+    Retourne True si présent.
+    """
+    if not explanation:
+        return False
+    return "Source : DVF" in explanation or "source_dvf" in explanation.lower()
+
+
+# ============================================================
+#  FONCTIONS DE SCORING — 300 PTS TOTAL
 # ============================================================
 
 def _score_joignabilite(prospect) -> tuple[int, list]:
     """
-    Joignabilité — 40 pts max
-    Email pro → 25 pts | Email perso → 10 pts
-    Tél fixe  → 15 pts | Tél mobile  →  8 pts
+    Joignabilité — 80 pts max
+    Email professionnel : +40
+    Email entreprise    : +30
+    Email personnel     : +15
+    Téléphone fixe      : +25
+    Téléphone mobile    : +15
     """
     score = 0
     details = []
@@ -61,15 +142,15 @@ def _score_joignabilite(prospect) -> tuple[int, list]:
         domain = prospect.email.lower().split("@")[-1] if "@" in prospect.email else ""
 
         if any(local.startswith(p) for p in PRO_EMAIL_PREFIXES):
-            score += 25
-            details.append(f"✉ Email professionnel ({prospect.email}) +25")
+            score += 40
+            details.append(f"✉ Email professionnel (contact@...) +40")
         elif domain in PERSONAL_EMAIL_DOMAINS:
-            score += 10
-            details.append(f"✉ Email personnel ({prospect.email}) +10")
+            score += 15
+            details.append(f"✉ Email personnel (gmail, etc.) +15")
         else:
-            # Email d'entreprise non générique (ex: nom@entreprise.fr)
-            score += 20
-            details.append(f"✉ Email entreprise ({prospect.email}) +20")
+            # Email d'entreprise non générique
+            score += 30
+            details.append(f"✉ Email entreprise (nom@domaine.com) +30")
     else:
         details.append("✉ Pas d'email trouvé +0")
 
@@ -77,103 +158,214 @@ def _score_joignabilite(prospect) -> tuple[int, list]:
     if prospect.phone:
         digits = prospect.phone.replace(" ", "").replace(".", "").replace("-", "")
         if digits.startswith(("01", "02", "03", "04", "05", "09")):
-            score += 15
-            details.append(f"📞 Téléphone fixe ({prospect.phone}) +15")
+            score += 25
+            details.append(f"📞 Téléphone fixe +25")
         elif digits.startswith(("06", "07")):
-            score += 8
-            details.append(f"📱 Téléphone mobile ({prospect.phone}) +8")
+            score += 15
+            details.append(f"📱 Téléphone mobile +15")
         else:
-            score += 5
-            details.append(f"📞 Téléphone détecté +5")
+            score += 10
+            details.append(f"📞 Téléphone détecté +10")
     else:
         details.append("📞 Pas de téléphone +0")
 
     return score, details
 
 
-def _score_presence_digitale(prospect) -> tuple[int, list]:
+def _score_identite(prospect) -> tuple[int, list]:
     """
-    Présence digitale — 30 pts max
-    Site web propre → 20 pts | Réseau social → 0 pts
-    Email sur page contact → +10 pts bonus
+    Présence & Identité — 60 pts max
+    Site web présent    : +20
+    Email sur site      : +10
+    Bloc Pappers        : +10
+    Dirigeant identifié : +10
+    SIRET connu         : +5
+    Forme juridique     : +5
     """
     score = 0
     details = []
 
+    pappers_data = _extract_pappers_data(prospect.score_explanation or "")
+
+    # ── Site web ────────────────────────────────────────────
     if prospect.website:
         website_lower = prospect.website.lower()
-
         if any(social in website_lower for social in SOCIAL_DOMAINS):
-            score += 0
-            details.append(f"🌐 Seul réseau social ({prospect.website}) +0")
+            details.append("🌐 Seul réseau social +0")
         else:
             score += 20
-            details.append(f"🌐 Site web présent ({prospect.website}) +20")
+            details.append("🌐 Site web présent +20")
 
-            # Bonus si email trouvé (= présence sur page contact)
             if prospect.email:
                 score += 10
-                details.append("📄 Email trouvé sur le site +10 bonus")
+                details.append("📄 Email trouvé sur le site +10")
     else:
         details.append("🌐 Pas de site web +0")
+
+    # ── Pappers : bloc présent ───────────────────────────────
+    if pappers_data.get("has_pappers"):
+        score += 10
+        details.append("🔹 Données Pappers trouvées +10")
+
+    # ── Dirigeant identifié ──────────────────────────────────
+    if pappers_data.get("dirigeant"):
+        score += 10
+        details.append(f"👤 Dirigeant : {pappers_data['dirigeant'][:30]} +10")
+
+    # ── SIRET connu ──────────────────────────────────────────
+    if pappers_data.get("siret"):
+        score += 5
+        details.append("🔢 SIRET connu +5")
+
+    # ── Forme juridique professionnelle ──────────────────────
+    name_lower = (prospect.company_name or "").lower()
+    if any(form in name_lower for form in LEGAL_FORMS):
+        score += 5
+        details.append("🏢 Forme juridique pro +5")
+    else:
+        details.append("🏢 Pas de forme juridique +0")
 
     return score, details
 
 
-def _score_potentiel_commercial(prospect) -> tuple[int, list]:
+def _score_potentiel(prospect) -> tuple[int, list]:
     """
-    Potentiel commercial — 30 pts max
-    Adresse complète → 10 pts
-    Zone ciblée      → 15 pts
-    Forme juridique  →  5 pts
+    Potentiel commercial — 80 pts max
+    Zone prioritaire    : +20
+    Adresse complète    : +15
+    CA > 1M€            : +30
+    CA > 500k€          : +20
+    CA > 100k€          : +10
+    Effectifs ≥ 10      : +15
+    Effectifs 5-9       : +8
+    Entreprise active   : +5
     """
     score = 0
     details = []
 
-    # ── Adresse complète ───────────────────────────────────
-    if prospect.address:
-        # Vérifier présence d'un code postal (5 chiffres)
-        import re
-        has_zip = bool(re.search(r'\b\d{5}\b', prospect.address))
-        if has_zip and len(prospect.address) > 15:
-            score += 10
-            details.append(f"📍 Adresse complète +10")
-        else:
-            score += 5
-            details.append(f"📍 Adresse partielle +5")
-    else:
-        details.append("📍 Pas d'adresse +0")
+    pappers_data = _extract_pappers_data(prospect.score_explanation or "")
 
-    # ── Zone géographique ciblée ───────────────────────────
+    # ── Zone prioritaire ─────────────────────────────────────
     location_text = " ".join(filter(None, [
         prospect.city or "",
         prospect.address or ""
     ])).lower()
 
     if any(zone in location_text for zone in TARGET_ZONES):
-        score += 15
-        details.append(f"🎯 Dans ta zone de travail +15")
+        score += 20
+        details.append("🎯 Zone prioritaire (IDF) +20")
     else:
-        details.append(f"🎯 Hors zone prioritaire +0")
+        details.append("🎯 Hors zone prioritaire +0")
 
-    # ── Forme juridique professionnelle ───────────────────
-    name_lower = (prospect.company_name or "").lower()
-    if any(form in name_lower for form in LEGAL_FORMS):
-        score += 5
-        details.append(f"🏢 Forme juridique pro +5")
+    # ── Adresse complète ────────────────────────────────────
+    if prospect.address:
+        has_zip = bool(re.search(r'\b\d{5}\b', prospect.address))
+        if has_zip and len(prospect.address) > 15:
+            score += 15
+            details.append("📍 Adresse complète (code postal) +15")
+        else:
+            score += 7
+            details.append("📍 Adresse partielle +7")
     else:
-        details.append(f"🏢 Nom sans forme juridique +0")
+        details.append("📍 Pas d'adresse +0")
+
+    # ── Chiffre d'affaires ──────────────────────────────────
+    ca = pappers_data.get("ca")
+    if ca:
+        if ca > 1_000_000:
+            score += 30
+            details.append(f"💰 CA > 1M€ ({ca:,}€) +30")
+        elif ca > 500_000:
+            score += 20
+            details.append(f"💰 CA > 500k€ ({ca:,}€) +20")
+        elif ca > 100_000:
+            score += 10
+            details.append(f"💰 CA > 100k€ ({ca:,}€) +10")
+    else:
+        details.append("💰 Pas de CA trouvé +0")
+
+    # ── Effectifs ───────────────────────────────────────────
+    effectifs = pappers_data.get("effectifs")
+    if effectifs:
+        if effectifs >= 10:
+            score += 15
+            details.append(f"👥 Effectifs ≥ 10 ({effectifs} salariés) +15")
+        elif effectifs >= 5:
+            score += 8
+            details.append(f"👥 Effectifs 5-9 ({effectifs} salariés) +8")
+    else:
+        details.append("👥 Pas d'effectifs trouvés +0")
+
+    # ── Entreprise active ───────────────────────────────────
+    if pappers_data.get("is_active"):
+        score += 5
+        details.append("✅ Entreprise active +5")
+
+    return score, details
+
+
+def _score_signaux(prospect) -> tuple[int, list]:
+    """
+    Signaux d'opportunité — 80 pts max
+    Permis de construire : +40
+    Industrie BTP        : +20
+    Industrie syndic/hôtel : +15
+    Industrie bureau/commerce : +10
+    Email répondu (status) : +30
+    Source DVF           : +20
+    """
+    score = 0
+    details = []
+
+    # ── Permis de construire ─────────────────────────────────
+    if _extract_permis_data(prospect.score_explanation or ""):
+        score += 40
+        details.append("🏗️ Permis de construire accordé +40")
+    else:
+        details.append("🏗️ Pas de permis de construire +0")
+
+    # ── Industries cibles ────────────────────────────────────
+    industry_lower = (prospect.industry or "").lower()
+
+    if any(ind in industry_lower for ind in TARGET_INDUSTRIES["high"]):
+        score += 20
+        details.append("🎯 Industrie BTP/Construction/Immo +20")
+    elif any(ind in industry_lower for ind in TARGET_INDUSTRIES["medium"]):
+        score += 15
+        details.append("🎯 Industrie Syndic/Hôtel/Restaurant +15")
+    elif any(ind in industry_lower for ind in TARGET_INDUSTRIES["low"]):
+        score += 10
+        details.append("🎯 Industrie Bureau/Commerce/Architecte +10")
+    else:
+        details.append("🎯 Industrie non ciblée +0")
+
+    # ── Email répondu ───────────────────────────────────────
+    if prospect.status == "replied":
+        score += 30
+        details.append("📧 Email répondu +30")
+
+    # ── Source DVF ───────────────────────────────────────────
+    if _extract_dvf_data(prospect.score_explanation or ""):
+        score += 20
+        details.append("🏠 Source DVF (transaction récente) +20")
 
     return score, details
 
 
 def _get_label(score: int) -> str:
-    """Retourne un label lisible selon le score."""
-    if score >= 75:
+    """
+    Retourne un label lisible selon le score /100.
+    Seuils :
+    - ≥ 80 : Priorité haute
+    - ≥ 60 : Priorité moyenne
+    - ≥ 40 : Priorité faible
+    - < 40 : Non prioritaire
+    """
+    if score >= 80:
         return "🔥 Priorité haute"
-    elif score >= 50:
+    elif score >= 60:
         return "⚡ Priorité moyenne"
-    elif score >= 25:
+    elif score >= 40:
         return "🌱 Priorité faible"
     else:
         return "❄️ Non prioritaire"
@@ -181,25 +373,32 @@ def _get_label(score: int) -> str:
 
 def calculate_score(prospect) -> tuple[int, str, str]:
     """
-    Calcule le score complet d'un prospect.
-    Retourne (score, label, explication détaillée)
+    Calcule le score complet sur 300 pts, puis normalise à /100.
+    Retourne (score_normalized, label, explication détaillée)
     """
-    score_j, details_j = _score_joignabilite(prospect)
-    score_d, details_d = _score_presence_digitale(prospect)
-    score_p, details_p = _score_potentiel_commercial(prospect)
+    score_j, details_j = _score_joignabilite(prospect)      # 80 max
+    score_i, details_i = _score_identite(prospect)           # 60 max
+    score_p, details_p = _score_potentiel(prospect)          # 80 max
+    score_s, details_s = _score_signaux(prospect)            # 80 max
 
-    total = min(score_j + score_d + score_p, 100)  # plafonné à 100
-    label = _get_label(total)
+    total_brut = score_j + score_i + score_p + score_s       # 300 max
+    score_normalized = round(total_brut / 300 * 100)         # Normaliser à /100
+    label = _get_label(score_normalized)
 
-    # Explication lisible
+    # Explication lisible avec catégories
     explanation = (
-        f"Joignabilité {score_j}/40 | "
-        f"Présence digitale {score_d}/30 | "
-        f"Potentiel {score_p}/30\n"
-        + "\n".join(details_j + details_d + details_p)
+        f"[300pts] Joignabilité {score_j}/80 | "
+        f"Identité {score_i}/60 | "
+        f"Potentiel {score_p}/80 | "
+        f"Signaux {score_s}/80\n"
+        f"Score brut: {total_brut}/300 → {score_normalized}/100\n\n"
+        + "JOIGNABILITÉ:\n" + "\n".join(details_j) + "\n\n"
+        + "IDENTITÉ:\n" + "\n".join(details_i) + "\n\n"
+        + "POTENTIEL:\n" + "\n".join(details_p) + "\n\n"
+        + "SIGNAUX:\n" + "\n".join(details_s)
     )
 
-    return total, label, explanation
+    return score_normalized, label, explanation
 
 
 # ============================================================
@@ -207,14 +406,21 @@ def calculate_score(prospect) -> tuple[int, str, str]:
 # ============================================================
 
 def run_lead_scoring():
-
+    """
+    Parcourt TOUS les prospects et calcule le score enrichi.
+    Met à jour lead_score (normalisé /100), score_label, score_explanation.
+    """
     db: Session = SessionLocal()
 
     prospects = db.query(Prospect).all()
     total = len(prospects)
 
-    score_distribution = {"🔥 Priorité haute": 0, "⚡ Priorité moyenne": 0,
-                          "🌱 Priorité faible": 0, "❄️ Non prioritaire": 0}
+    score_distribution = {
+        "🔥 Priorité haute": 0,
+        "⚡ Priorité moyenne": 0,
+        "🌱 Priorité faible": 0,
+        "❄️ Non prioritaire": 0
+    }
 
     for prospect in prospects:
         score, label, explanation = calculate_score(prospect)
@@ -229,10 +435,10 @@ def run_lead_scoring():
     db.commit()
     db.close()
 
-    print(f"\n{'='*40}")
-    print(f"📊 SCORING TERMINÉ — {total} prospects")
-    print(f"{'='*40}")
+    print(f"\n{'='*50}")
+    print(f"📊 SCORING ENRICHI 300pts → /100 — {total} prospects")
+    print(f"{'='*50}")
     for label, count in score_distribution.items():
         pct = round(count / total * 100) if total > 0 else 0
         print(f"  {label} : {count} ({pct}%)")
-    print(f"{'='*40}\n")
+    print(f"{'='*50}\n")
