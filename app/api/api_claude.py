@@ -354,3 +354,99 @@ def handle_telegram_message(text: str, from_user: str = "Mohand") -> str:
         error_msg = f"❌ Erreur : {str(e)}"
         send_message(error_msg)
         return error_msg
+
+
+# ══════════════════════════════════════════════════════════════
+#  TOOL CALLING — Intégration Groq avec tools CRM
+# ══════════════════════════════════════════════════════════════
+
+from app.agents.claude_tools import TOOLS_REGISTRY, execute_tool
+from app.agents.claude_autonomy import can_act_autonomously, should_escalate, request_human_validation, get_autonomy_status
+
+def handle_tool_call(tool_name: str, arguments: dict) -> str:
+    """
+    Exécute un tool et retourne le résultat.
+
+    Args:
+        tool_name: Nom du tool
+        arguments: Arguments du tool
+
+    Returns:
+        Résultat formaté en string
+    """
+    logger.info(f"Tool call: {tool_name} with args: {arguments}")
+
+    # Vérifier autonomie
+    if tool_name in ["send_prospecting_email", "generate_quote", "enrich_prospect_pappers"]:
+        action_map = {
+            "send_prospecting_email": "email_prospection",
+            "generate_quote": "generate_devis",
+            "enrich_prospect_pappers": "enrich_prospect"
+        }
+
+        action = action_map.get(tool_name)
+        counters = get_autonomy_status()
+
+        # Contexte pour vérification autonomie
+        context = {
+            "daily_sent": counters["emails"]["sent_today"],
+            "daily_spent": counters["enrichment"]["spent_today"]
+        }
+
+        if tool_name == "generate_quote":
+            context["amount"] = arguments.get("surface_m2", 0) * 50  # Estimation rapide
+
+        can_act, reason = can_act_autonomously(action, context)
+
+        if not can_act:
+            # Escalader
+            decision_id = request_human_validation(action, arguments, reason)
+            return f"⚠️ Action nécessite validation (Décision #{decision_id}): {reason}"
+
+    # Exécuter tool
+    result = execute_tool(tool_name, **arguments)
+
+    # Vérifier si escalation nécessaire (montant élevé, etc.)
+    if tool_name == "generate_quote" and isinstance(result, dict):
+        amount = result.get("montant_ttc", 0)
+        if amount > 15000:
+            escalate, reason, priority = should_escalate("devis_montant_eleve", {"amount": amount})
+            if escalate:
+                decision_id = request_human_validation(
+                    "generate_quote",
+                    {"prospect_id": arguments.get("prospect_id"), "amount": amount},
+                    reason,
+                    priority
+                )
+                result["escalated"] = True
+                result["decision_id"] = decision_id
+
+    return str(result)
+
+
+@router.get("/claude/autonomy")
+def get_autonomy():
+    """Retourne le statut d'autonomie de Claude."""
+    return get_autonomy_status()
+
+
+@router.post("/claude/validate/{decision_id}")
+def validate_decision(decision_id: int, approved: bool):
+    """
+    Valide ou refuse une décision escaladée.
+
+    Args:
+        decision_id: ID de la décision
+        approved: True pour valider, False pour refuser
+    """
+    from app.agents.claude_memory import update_decision_outcome
+
+    outcome = "success" if approved else "cancelled"
+    feedback = "Validé par Mohand" if approved else "Refusé par Mohand"
+
+    updated = update_decision_outcome(decision_id, outcome, feedback)
+
+    if updated:
+        return {"status": "ok", "decision_id": decision_id, "approved": approved}
+    else:
+        raise HTTPException(status_code=404, detail="Decision not found")

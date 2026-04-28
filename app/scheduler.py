@@ -27,6 +27,7 @@ from app.agents.dvf_agent import run_dvf_scraper
 from app.agents.email_finder import find_emails_batch
 from app.agents.claude_assistant import generate_daily_briefing, generate_weekly_report
 from app.agents.telegram_notifier import send_message
+from app.agents.claude_optimizer import run_optimization_cycle
 from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
 import logging
 
@@ -356,6 +357,15 @@ def start_scheduler():
         send_weekly_report,
         trigger=CronTrigger(day_of_week='mon', hour=9, minute=0, timezone="Europe/Paris"),
         id="claude_report_weekly",
+        replace_existing=True,
+    )
+
+
+    # Job 12 — Optimisation quotidienne Claude à 20h
+    _scheduler.add_job(
+        run_optimization_cycle,
+        trigger=CronTrigger(hour=20, minute=0, timezone="Europe/Paris"),
+        id="claude_optimizer_daily",
         replace_existing=True,
     )
 
