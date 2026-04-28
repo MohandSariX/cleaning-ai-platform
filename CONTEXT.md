@@ -33,7 +33,8 @@ cleaning-ai-platform/
 │   │   ├── facture.py               ← Factures émises
 │   │   ├── email_log.py             ← Historique tous les emails envoyés
 │   │   ├── conversation.py          ← Conversations qualification en base
-│   │   └── activity_log.py          ← Journal d'activité tous les agents
+│   │   ├── activity_log.py          ← Journal d'activité tous les agents
+│   │   └── ai_memory.py             ← AIMemory, AIDecision, ConversationHistory (Claude)
 │   │
 │   ├── api/                         ← FastAPI routers (prefix="/api" dans main.py)
 │   │   ├── api_prospects.py         ← GET/PATCH prospects + emails + conversation
@@ -41,7 +42,7 @@ cleaning-ai-platform/
 │   │   ├── api_devis.py             ← CRUD devis + PDF
 │   │   ├── api_chantier.py          ← CRUD chantiers
 │   │   ├── api_factures.py          ← CRUD factures + PDF
-│   │   ├── api_scraping.py          ← POST scrape/start, GET scrape/status
+│   │   ├── api_scraping.py          ← POST scrape/start, GET scrape/status, POST scoring/run
 │   │   ├── api_scheduler.py         ← GET scheduler/status, POST scheduler/run-now
 │   │   ├── api_watchdog.py          ← GET watchdog/rapport, POST watchdog/refresh
 │   │   │                              POST watchdog/test-telegram, test-gmail
@@ -51,12 +52,15 @@ cleaning-ai-platform/
 │   │   ├── api_devis_rules.py       ← GET/PATCH devis-rules, POST simulate
 │   │   ├── api_pappers.py           ← POST pappers/enrich/{id}, batch, search
 │   │   ├── api_activity.py          ← GET activity/logs, summary, health, stats
+│   │   │                              GET activity/claude/* (tools, decisions, escalations)
 │   │   ├── api_permis.py            ← POST permis/scrape, scrape-sync
-│   │   └── api_email_finder.py      ← POST email-finder/prospect/{id}, batch-sync
+│   │   ├── api_email_finder.py      ← POST email-finder/prospect/{id}, batch-sync
+│   │   ├── api_dvf.py               ← POST dvf/scrape, scrape-sync
+│   │   └── api_claude.py            ← POST webhook/telegram (Groq API conversation)
 │   │
 │   ├── agents/                      ← Agents autonomes
 │   │   ├── lead_scraper.py          ← Orchestrateur scraping Pages Jaunes
-│   │   ├── lead_scorer.py           ← Scoring prospects /100
+│   │   ├── lead_scorer.py           ← Scoring prospects 300pts → /100
 │   │   ├── scraper_pagesjaunes.py   ← Playwright scraper Pages Jaunes
 │   │   ├── email_outreach_agent.py  ← Envoi emails prospection (50/j, 9h-18h)
 │   │   ├── email_templates.py       ← Templates par secteur + relances
@@ -71,7 +75,14 @@ cleaning-ai-platform/
 │   │   ├── activity_logger.py       ← log_*() fonctions pour tous les agents
 │   │   ├── pappers_agent.py         ← Enrichissement Pappers API
 │   │   ├── permis_construire_agent.py ← Scraping CSV SITADEL data.gouv
-│   │   └── email_finder_agent.py    ← Scraping BeautifulSoup + déduction email
+│   │   ├── email_finder_agent.py    ← Scraping BeautifulSoup + déduction email
+│   │   ├── dvf_agent.py             ← Scraping DVF (transactions immo IDF)
+│   │   ├── telegram_polling.py      ← Telegram long polling (getUpdates)
+│   │   ├── claude_memory.py         ← Mémoire persistante Claude (PostgreSQL)
+│   │   ├── claude_tools.py          ← 6 tools CRM pour function calling
+│   │   ├── claude_autonomy.py       ← Règles autonomie + escalation
+│   │   ├── claude_assistant.py      ← Briefings + rapports + stats
+│   │   └── claude_optimizer.py      ← Optimisation continue + A/B testing
 │   │
 │   ├── utils/
 │   │   ├── pdf_generator.py         ← ReportLab PDF devis
@@ -113,14 +124,17 @@ cleaning-ai-platform/
 
 ### Tables principales
 ```sql
-prospects       -- Prospects scrappés (lead_score, status, email, industry...)
-clients         -- Clients convertis (depuis prospects)
-devis           -- Devis générés
-chantiers       -- Chantiers planifiés
-factures        -- Factures émises
-email_logs      -- Tous les emails envoyés (prospection, relance, qualification, devis)
-conversations   -- Conversations qualification IA (historique JSON, infos JSON)
-activity_logs   -- Journal d'activité complet de tous les agents
+prospects            -- Prospects scrappés (lead_score, status, email, industry...)
+clients              -- Clients convertis (depuis prospects)
+devis                -- Devis générés
+chantiers            -- Chantiers planifiés
+factures             -- Factures émises
+email_logs           -- Tous les emails envoyés (prospection, relance, qualification, devis)
+conversations        -- Conversations qualification IA (historique JSON, infos JSON)
+activity_logs        -- Journal d'activité complet de tous les agents
+ai_memory            -- Mémoire persistante Claude (key/value + context)
+ai_decisions         -- Décisions autonomes Claude (type, data, reasoning, escalated)
+conversation_history -- Historique conversations Telegram Claude
 ```
 
 ### Statuts prospect
@@ -140,14 +154,16 @@ en_cours → devis_envoye → signe / perdu
 ### .env
 ```
 PAPPERS_API_KEY=xxx
-ANTHROPIC_API_KEY=xxx   ← Pour l'associée IA Claude (Phase 3)
+GROQ_API_KEY=xxx              ← Groq API pour Claude (gratuit, llama-3.3-70b)
+TELEGRAM_BOT_TOKEN=xxx        ← Bot Telegram pour interface Claude
+TELEGRAM_CHAT_ID=xxx          ← ID chat Mohand pour notifications
 ```
 
 ### devis_rules.json (racine projet)
 Contient : tarifs, TVA, validité devis, questions qualification par type, infos société
 NE JAMAIS coder les tarifs ou infos société en dur dans le code — toujours lire depuis ce fichier.
 
-### Scheduler — 8 jobs actifs
+### Scheduler — 12 jobs actifs
 | Job ID | Déclencheur | Fonction |
 |--------|-------------|----------|
 | nightly_scrape | Chaque nuit 23h | run_nightly_scrape() |
@@ -158,6 +174,10 @@ NE JAMAIS coder les tarifs ou infos société en dur dans le code — toujours l
 | pappers_enrich | Chaque jour 6h | pappers_enrich_batch() |
 | permis_construire | 1er du mois 5h | run_permis_scraper() |
 | email_finder | Chaque jour 7h | find_emails_batch() |
+| dvf_scraper | 1er du mois 4h | run_dvf_scraper() |
+| claude_briefing | Chaque jour 8h | send_daily_briefing() |
+| claude_report | Lundi 9h | send_weekly_report() |
+| claude_optimize | Chaque jour 20h | run_optimization_cycle() |
 
 ---
 
@@ -249,25 +269,31 @@ curl -X POST http://localhost:8000/api/outreach/send-test
 
 ## 📊 État actuel du projet
 
-### Phases complètes
-- ✅ Phase 1 : Fondations (emails, persistance, devis engine, infos légales, token Gmail)
-- ✅ Phase 2 partielle : Pappers, Permis construire, Email finder
+### Phases complètes ✅
+- ✅ **Phase 1** : Fondations (emails, persistance, devis engine, infos légales, token Gmail)
+- ✅ **Phase 2** : Enrichissement données
+  - 2.1-2.2 : Pappers API + Permis construire (SITADEL)
+  - 2.4 : Email Finder (scraping + déduction)
+  - 2.5 : DVF (transactions immobilières IDF → 52k prospects)
+  - 2.6 : **Score enrichi 300 points** (joignabilité 80 + identité 60 + potentiel 80 + signaux 80 → normalisé /100)
+  - 2.7 : Activity logging complet
+- ✅ **Phase 3** : Claude l'associée IA
+  - Groq API (llama-3.3-70b-versatile, gratuit)
+  - Mémoire PostgreSQL persistante (ai_memory, ai_decisions, conversation_history)
+  - Interface Telegram long polling (local dev)
+  - 6 CRM tools (get_prospects, update, send_email, enrich_pappers, generate_quote, get_stats)
+  - Autonomie + escalation (50 emails/j, 50€/j, devis <10k€, discount <15%)
+  - Briefings quotidiens (8h) + rapports hebdo (lundi 9h)
+  - Optimisation continue (20h)
+  - **Tests complets** : 28 tests (memory, tools, autonomy, assistant)
 
 ### En cours
-- 🔄 Phase 2 : DVF (2.5) + Score enrichi 300pts (2.6)
+- 🔄 **Enrichissement données** : Lancer agents Pappers/DVF/Permis sur les 1593 prospects existants
 
 ### Prochaine grande étape
-- 🔜 Phase 3 : Claude l'associée IA
-  - Claude API (claude-sonnet)
-  - Mémoire PostgreSQL persistante
-  - Interface Telegram conversationnelle
-  - Accès complet aux APIs CRM
-  - Décisions autonomes dans un cadre défini
-  - Briefing matinal quotidien
-  - Rapport hebdomadaire
+- 🔜 **Phase 4** : Gestion chantiers autonome + Facturation auto + Qonto API
 
 ### À venir
-- Phase 4 : Gestion chantiers autonome + Facturation auto + Qonto API
 - Phase 4B : Comptabilité SAS + TVA + Prévision trésorerie
 - Phase 5 : Site vitrine + SEO + GMB + Appels d'offres publics
 - Phase 6 : Intelligence business + Expansion automatique
