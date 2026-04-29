@@ -8,6 +8,9 @@ class Devis(Base):
     __tablename__ = "devis"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Multi-tenant
+    tenant_id = Column(Integer, ForeignKey('tenants.id', ondelete='CASCADE'), nullable=True, index=True)
+
 
     client_id  = Column(Integer, ForeignKey("clients.id"), nullable=False)
 

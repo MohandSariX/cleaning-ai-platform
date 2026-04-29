@@ -195,6 +195,74 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
+
+---
+
+## 🔷 PHASE 3.5 — Multi-tenant (FONDATIONS)
+
+> **Préparer le système pour supporter plusieurs utilisateurs/entreprises**
+
+### 3.5.1 Modèle Tenant
+- **Table `tenants`** : id, name, email, plan, status, created_at
+  - Plans : `owner` | `starter` | `pro` | `enterprise`
+  - Status : `active` | `suspended` | `blocked`
+- **Table `tenant_config`** : Configuration par tenant
+  - gmail credentials, telegram tokens, zones_json
+  - max_emails_per_day, credentials_encrypted
+- **Table `tenant_subscription`** : Abonnements & facturation
+  - plan, price_monthly, next_billing_date, status
+
+### 3.5.2 Migration tenant_id
+- Ajouter colonne `tenant_id` (nullable, FK) sur :
+  - prospects, clients, email_logs, conversations
+  - activity_logs, devis, factures, chantiers
+- Créer tenant "owner" par défaut :
+  - name="Proprexis", email="contact.proprexis@gmail.com"
+  - plan="owner", status="active"
+
+### 3.5.3 Tests
+- `test_tenant.py` : CRUD tenant, config, subscription
+- Vérifier isolation des données par tenant
+
+---
+
+## 🔶 PHASE 3.6 — Produits en base (REFACTORING)
+
+> **Remplacer devis_rules.json par une table PostgreSQL**
+
+### 3.6.1 Modèle Product
+- **Table `products`** : Catalogue produits/services
+  - id, tenant_id, name, description, category
+  - unit, unit_price_ht, tva_rate, minimum_ht, active
+  - Categories : `prestation` | `forfait` | `materiel`
+  - Units : `m2` | `heure` | `forfait` | `mois` | `unite`
+
+### 3.6.2 Lignes de devis/factures
+- **Table `devis_lines`** : Lignes détaillées par devis
+  - id, devis_id, product_id, description, quantity
+  - unit_price_ht, tva_rate, total_ht
+- **Table `facture_lines`** : Lignes détaillées par facture
+  - Même structure que devis_lines
+
+### 3.6.3 Migration données
+- Script one-shot : migrer devis_rules.json → table products
+- Supprimer devis_rules.json définitivement
+- Adapter `devis_engine.py` pour lire depuis Product
+  - Garder interface : `calculate(type, superficie, frequence)`
+
+### 3.6.4 API Produits
+- **POST /api/products** : Créer produit
+- **GET /api/products** : Liste produits (filtres)
+- **PATCH /api/products/{id}** : Modifier produit
+- **DELETE /api/products/{id}** : Désactiver (soft delete)
+
+### 3.6.5 Tests
+- `test_product.py` : CRUD produits, DevisLine, FactureLine
+- `test_devis_engine.py` : calculate() depuis base
+- `test_api_products.py` : Endpoints API
+
+---
+
 ## 🟡 PHASE 4 — Frontend avancé (DÉVELOPPEMENT)
 
 ### 4.1 Dashboard exécutif

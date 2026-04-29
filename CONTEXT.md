@@ -287,6 +287,10 @@ curl -X POST http://localhost:8000/api/outreach/send-test
   - Optimisation continue (20h)
   - **Tests complets** : 28 tests (memory, tools, autonomy, assistant)
 
+### En cours — REFACTORING
+- 🔄 **Phase 3.5** : Multi-tenant (fondations)
+- 🔄 **Phase 3.6** : Produits en base (remplace devis_rules.json)
+
 ### Prochaine phase — DÉVELOPPEMENT (société pas encore créée)
 - 🔜 **Phase 4** : Frontend avancé (dashboard exécutif, analytics, Kanban)
 - 🔜 **Phase 5** : Gestion chantiers (logique interne + facturation SIMULÉE)

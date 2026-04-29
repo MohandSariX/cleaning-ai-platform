@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, DateTime
+from sqlalchemy import ForeignKey, Column, Integer, String, Float, Text, DateTime
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -8,6 +8,9 @@ class Prospect(Base):
     __tablename__ = "prospects"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Multi-tenant
+    tenant_id = Column(Integer, ForeignKey('tenants.id', ondelete='CASCADE'), nullable=True, index=True)
+
 
     # Infos entreprise
     company_name = Column(String)
