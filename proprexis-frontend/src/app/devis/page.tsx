@@ -39,7 +39,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
       </div>
       <div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontFamily: 'Syne', fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
         {sub && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
@@ -79,7 +79,7 @@ function NewDevisModal({ onClose, onCreated }: { onClose: () => void; onCreated:
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="card" style={{ width: 560, maxHeight: '88vh', overflowY: 'auto', padding: 32 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, margin: 0 }}>Nouveau devis</h2>
+          <h2 style={{ fontFamily: 'DM Sans', fontSize: 18, fontWeight: 700, margin: 0 }}>Nouveau devis</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
         </div>
 
@@ -152,7 +152,7 @@ function NewDevisModal({ onClose, onCreated }: { onClose: () => void; onCreated:
           {ht > 0 && (
             <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total TTC</div>
-              <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 700, color: '#22c55e' }}>{ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 22, fontWeight: 700, color: '#22c55e' }}>{ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</div>
             </div>
           )}
 
@@ -210,7 +210,7 @@ export default function DevisPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0 }}>Devis</h1>
+          <h1 style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, margin: 0 }}>Devis</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: 14 }}>{devisList.length} devis</p>
         </div>
         <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -250,7 +250,7 @@ export default function DevisPage() {
         ) : devisList.length === 0 ? (
           <div style={{ padding: 64, textAlign: 'center' }}>
             <FileText size={40} color="var(--text-dim)" style={{ margin: '0 auto 16px' }} />
-            <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Aucun devis encore</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Aucun devis encore</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>Crée ton premier devis pour un client.</div>
             <button onClick={() => setShowModal(true)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               + Créer un devis

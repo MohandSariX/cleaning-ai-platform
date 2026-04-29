@@ -79,7 +79,7 @@ export function SchedulerPanel() {
             <Zap size={15} color="#22c55e" />
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14 }}>Agent de prospection automatique</div>
+            <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14 }}>Agent de prospection automatique</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
               {status?.running
                 ? `⚡ En cours — ${status.current_dept ? `Dept ${status.current_dept}` : ''} ${status.current_city ? `/ ${status.current_city}` : ''}`
@@ -146,7 +146,7 @@ export function SchedulerPanel() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: isToday ? color : 'var(--text-muted)', marginBottom: 4 }}>
                       {DAY_NAMES[dayNum].slice(0, 3).toUpperCase()}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Syne', color }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'DM Sans', color }}>
                       {info.dept}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>

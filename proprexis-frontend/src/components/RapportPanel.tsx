@@ -79,7 +79,7 @@ export function RapportPanel() {
             <TrendingUp size={15} color={totalAlertes > 0 ? '#ef4444' : '#22c55e'} />
           </div>
           <div>
-            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14 }}>
+            <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14 }}>
               Rapport du jour
               {totalAlertes > 0 && (
                 <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 10, background: '#ef444418', color: '#ef4444', fontSize: 11, fontWeight: 700 }}>

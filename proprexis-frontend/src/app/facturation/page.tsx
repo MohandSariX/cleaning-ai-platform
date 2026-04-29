@@ -32,7 +32,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
       </div>
       <div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontFamily: 'Syne', fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
         {sub && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
@@ -83,7 +83,7 @@ function NewFactureModal({ onClose, onCreated }: { onClose: () => void; onCreate
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="card" style={{ width: 520, maxHeight: '88vh', overflowY: 'auto', padding: 32 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, margin: 0 }}>Nouvelle facture</h2>
+          <h2 style={{ fontFamily: 'DM Sans', fontSize: 18, fontWeight: 700, margin: 0 }}>Nouvelle facture</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
         </div>
 
@@ -125,7 +125,7 @@ function NewFactureModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>HT : {ht.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</div>
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>TVA ({tva}%) : {(ttc - ht).toFixed(2)} €</div>
               </div>
-              <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 700, color: '#22c55e' }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 22, fontWeight: 700, color: '#22c55e' }}>
                 {ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € TTC
               </div>
             </div>
@@ -199,7 +199,7 @@ export default function FacturationPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0 }}>Facturation</h1>
+          <h1 style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, margin: 0 }}>Facturation</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: 14 }}>{factures.length} facture{factures.length > 1 ? 's' : ''}</p>
         </div>
         <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -239,7 +239,7 @@ export default function FacturationPage() {
         ) : factures.length === 0 ? (
           <div style={{ padding: 64, textAlign: 'center' }}>
             <Receipt size={40} color="var(--text-dim)" style={{ margin: '0 auto 16px' }} />
-            <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Aucune facture encore</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Aucune facture encore</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>Crée ta première facture après un chantier.</div>
             <button onClick={() => setShowModal(true)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               + Créer une facture

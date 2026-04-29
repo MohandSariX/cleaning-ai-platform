@@ -49,7 +49,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{label}</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 32, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>{value}</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 32, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>{value}</div>
           {sub && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>{sub}</div>}
         </div>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: color ? `${color}18` : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -136,7 +136,7 @@ function ScrapePanel({ onDone }: { onDone: () => void }) {
             <Search size={15} color="#3b82f6" />
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14 }}>Lancer un scraping</div>
+            <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14 }}>Lancer un scraping</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>Pages Jaunes → scoring automatique</div>
           </div>
         </div>
@@ -357,7 +357,7 @@ export default function DashboardPage() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
       <div className="card" style={{ padding: 32, maxWidth: 400, textAlign: 'center' }}>
         <AlertCircle size={32} color="var(--red)" style={{ margin: '0 auto 16px' }} />
-        <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Connexion impossible</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Connexion impossible</div>
         <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{error}</div>
         <code style={{ display: 'block', marginTop: 16, padding: '8px 12px', background: 'var(--surface)', borderRadius: 6, fontSize: 12, color: 'var(--accent)' }}>
           uvicorn main:app --reload
@@ -379,7 +379,7 @@ export default function DashboardPage() {
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1200 }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Dashboard</h1>
+        <h1 style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Dashboard</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: 14 }}>Vue d'ensemble de ta pipeline commerciale</p>
       </div>
 
@@ -407,7 +407,7 @@ export default function DashboardPage() {
       {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, margin: '0 0 20px', color: 'var(--text)' }}>Prospects par ville</h3>
+          <h3 style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, margin: '0 0 20px', color: 'var(--text)' }}>Prospects par ville</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={topCities} margin={{ top: 0, right: 0, bottom: 20, left: -20 }}>
               <XAxis dataKey="city" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} angle={-35} textAnchor="end" interval={0} />
@@ -421,7 +421,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, margin: '0 0 20px', color: 'var(--text)' }}>Distribution des scores</h3>
+          <h3 style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, margin: '0 0 20px', color: 'var(--text)' }}>Distribution des scores</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             <ResponsiveContainer width={180} height={180}>
               <PieChart>

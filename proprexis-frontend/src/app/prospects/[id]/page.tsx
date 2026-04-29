@@ -370,7 +370,7 @@ function EmailPanel({ prospect, onStatusChange }: { prospect: Prospect; onStatus
   return (
     <div className="card" style={{ padding: 24, gridColumn: '1 / -1' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h3 style={{ fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Mail size={14} /> Préparer un email
         </h3>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -489,7 +489,7 @@ function ConversationPanel({ prospectId }: { prospectId: number }) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <MessageSquare size={15} color="var(--accent)" />
-          <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <h3 style={{ fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Conversation & Emails
           </h3>
           {conv && sc && (
@@ -638,20 +638,20 @@ export default function ProspectPage() {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, margin: 0 }}>{prospect.company_name}</h1>
+          <h1 style={{ fontFamily: 'DM Sans', fontSize: 26, fontWeight: 800, margin: 0 }}>{prospect.company_name}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: `${scoreColor}18`, color: scoreColor, border: `1px solid ${scoreColor}30` }}>{prospect.score_label}</span>
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Score : <strong style={{ color: 'var(--text)' }}>{prospect.lead_score}/100</strong></span>
           </div>
         </div>
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: `conic-gradient(${scoreColor} ${prospect.lead_score * 3.6}deg, var(--border) 0deg)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: scoreColor }}>{prospect.lead_score}</div>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 16, color: scoreColor }}>{prospect.lead_score}</div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Coordonnées</h3>
+          <h3 style={{ fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Coordonnées</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {prospect.email && <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Mail size={15} color="var(--accent)" /><a href={`mailto:${prospect.email}`} style={{ color: 'var(--accent)', fontSize: 13, textDecoration: 'none' }}>{prospect.email}</a></div>}
             {prospect.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Phone size={15} color="var(--text-muted)" /><span style={{ fontSize: 13 }}>{prospect.phone}</span></div>}
@@ -662,7 +662,7 @@ export default function ProspectPage() {
         </div>
 
         <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <h3 style={{ fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Statut pipeline
             {saving && <Loader2 size={13} className="animate-spin" style={{ marginLeft: 8, display: 'inline' }} />}
             {saved && <Check size={13} color="#22c55e" style={{ marginLeft: 8, display: 'inline' }} />}
@@ -681,7 +681,7 @@ export default function ProspectPage() {
         <ConversationPanel prospectId={prospect.id} />
 
         <div className="card" style={{ padding: 24, gridColumn: '1 / -1' }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <h3 style={{ fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, margin: '0 0 16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             <Star size={14} style={{ display: 'inline', marginRight: 6 }} /> Détail du scoring
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
