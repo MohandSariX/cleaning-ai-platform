@@ -1,11 +1,13 @@
 """
 API Devis Rules — CRUD sur devis_rules.json depuis le dashboard.
+DEPRECATED: Utilisez /api/products à la place.
+Conservé temporairement pour compatibilité avec le dashboard.
 """
 import json
 import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.utils.devis_engine import load_rules, RULES_PATH, get_all_tarifs
+from app.utils.devis_engine import load_rules, get_all_tarifs
 
 router = APIRouter()
 
@@ -30,25 +32,15 @@ class TarifUpdate(BaseModel):
 
 @router.patch("/devis-rules/tarifs/{cle}")
 def update_tarif(cle: str, update: TarifUpdate):
-    """Met à jour un tarif spécifique."""
-    rules = load_rules()
-    if cle not in rules["tarifs"]:
-        raise HTTPException(status_code=404, detail=f"Tarif '{cle}' introuvable")
-
-    tarif = rules["tarifs"][cle]
-    if update.tarif_m2 is not None:
-        tarif["tarif_m2"] = update.tarif_m2
-    if update.tarif_horaire is not None:
-        tarif["tarif_horaire"] = update.tarif_horaire
-    if update.minimum_ht is not None:
-        tarif["minimum_ht"] = update.minimum_ht
-
-    rules["_derniere_maj"] = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
-
-    with open(RULES_PATH, "w", encoding="utf-8") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
-
-    return {"status": "ok", "tarif": tarif}
+    """
+    DEPRECATED: Utilisez PATCH /api/products/{id} à la place.
+    Met à jour un tarif spécifique.
+    """
+    raise HTTPException(
+        status_code=410,
+        detail="Endpoint déprécié. Utilisez PATCH /api/products/{id} à la place. "
+               "Les tarifs sont maintenant stockés en base de données (table products)."
+    )
 
 
 class SocieteUpdate(BaseModel):
@@ -65,20 +57,15 @@ class SocieteUpdate(BaseModel):
 
 @router.patch("/devis-rules/societe")
 def update_societe(update: SocieteUpdate):
-    """Met à jour les infos légales de la société."""
-    rules = load_rules()
-    societe = rules.get("societe", {})
-
-    for field, value in update.dict(exclude_none=True).items():
-        societe[field] = value
-
-    rules["societe"] = societe
-    rules["_derniere_maj"] = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
-
-    with open(RULES_PATH, "w", encoding="utf-8") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
-
-    return {"status": "ok", "societe": societe}
+    """
+    DEPRECATED: Les infos société sont maintenant stockées dans la table tenants.
+    Met à jour les infos légales de la société.
+    """
+    raise HTTPException(
+        status_code=410,
+        detail="Endpoint déprécié. Les informations société sont maintenant stockées "
+               "dans la table tenants (TenantConfig)."
+    )
 
 
 @router.post("/devis-rules/simulate")

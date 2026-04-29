@@ -1,20 +1,88 @@
 """
-Moteur de devis intelligent — lit devis_rules.json et calcule les montants.
+Moteur de devis intelligent — lit depuis table products.
 Remplace les tarifs codés en dur dans qualification_agent.py
 """
-import json
-import os
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
+from app.core.database import SessionLocal
+from app.models.product import Product, get_products_by_tenant
+from app.models.tenant import get_tenant_by_email
 
-RULES_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "devis_rules.json"
-)
+
+def load_products_from_db() -> dict:
+    """
+    Charge les produits depuis la base de données.
+    Retourne un dict au même format que l'ancien JSON pour compatibilité.
+    """
+    db = SessionLocal()
+    try:
+        owner = get_tenant_by_email(db, "contact.proprexis@gmail.com")
+        if not owner:
+            raise ValueError("Tenant owner introuvable")
+
+        products = get_products_by_tenant(db, owner.id, active_only=True)
+
+        # Mapping nom produit → clé JSON pour compatibilité
+        name_to_key = {
+            "Nettoyage fin de chantier": "fin_chantier",
+            "Nettoyage bureaux ponctuel": "bureaux_ponctuel",
+            "Nettoyage bureaux hebdomadaire": "bureaux_hebdo",
+            "Nettoyage bureaux mensuel": "bureaux_mensuel",
+            "Nettoyage bureaux trimestriel": "bureaux_trimestriel",
+            "Contrat annuel bureaux": "bureaux_annuel",
+            "Entretien parties communes mensuel": "copropriete_mensuel",
+            "Entretien parties communes hebdomadaire": "copropriete_hebdo",
+            "Nettoyage vitrerie": "vitrerie",
+            "Remise en état après sinistre/travaux": "remise_en_etat",
+        }
+
+        # Convertir en format compatible avec l'ancien JSON
+        tarifs = {}
+        for product in products:
+            key = name_to_key.get(product.name, product.name.lower().replace(" ", "_"))
+            tarifs[key] = {
+                "label": product.name,
+                "description": product.description or "",
+                "unite": product.unit,
+                "tarif_m2": product.unit_price_ht if product.unit in ["m2", "m2_par_semaine", "m2_par_mois", "m2_par_trimestre", "m2_par_an"] else None,
+                "tarif_horaire": product.unit_price_ht if product.unit == "heure" else None,
+                "minimum_ht": product.minimum_ht or 0,
+                "duree_estimee_h_par_100m2": None,  # Non stocké en base, peut être ajouté plus tard
+            }
+
+        return {
+            "tarifs": tarifs,
+            "tva": {"taux_standard": 20.0, "taux_reduit": 10.0},
+            "validite_devis_jours": 30,
+            "questions_qualification": {
+                "fin_chantier": ["superficie_m2", "type_batiment", "date_souhaitee"],
+                "bureaux": ["superficie_m2", "frequence", "nb_personnes"],
+                "copropriete": ["superficie_m2", "frequence", "nb_lots"],
+                "vitrerie": ["superficie_m2", "nb_faces", "hauteur"],
+                "remise_en_etat": ["superficie_m2", "type_sinistre", "date_souhaitee"],
+            },
+            "societe": {
+                "nom": "Proprexis",
+                "forme_juridique": "Auto-entrepreneur",
+                "gerant": "Mohand Sari",
+                "email": "contact.proprexis@gmail.com",
+                "telephone": "06 XX XX XX XX",
+                "adresse": "Champigny-sur-Marne, 94500",
+                "siret": "XXX XXX XXX XXXXX",
+                "numero_tva": "FR XX XXX XXX XXX",
+                "iban": "FR76 XXXX XXXX XXXX XXXX XXXX XXX",
+                "bic": "XXXXXXXX",
+            }
+        }
+    finally:
+        db.close()
+
 
 def load_rules() -> dict:
-    """Charge les règles tarifaires depuis devis_rules.json."""
-    with open(RULES_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """
+    DEPRECATED: Utilise load_products_from_db() à la place.
+    Conservé pour compatibilité avec le code existant.
+    """
+    return load_products_from_db()
 
 
 def get_tarif_key(type_prestation: str, frequence: str) -> str:
