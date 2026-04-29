@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Mail, FileText, TrendingUp, Activity, Zap, Loader2 } from 'lucide-react'
+import { PipelineChart } from '@/components/PipelineChart'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -66,13 +67,17 @@ function StatCard({ icon: Icon, label, value, color }: {
 
 export default function DashboardV2() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [chartData, setChartData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${API}/api/dashboard/stats`)
-      .then(res => res.json())
-      .then(setStats)
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch(`${API}/api/dashboard/stats`).then(res => res.json()),
+      fetch(`${API}/api/dashboard/pipeline-chart`).then(res => res.json())
+    ]).then(([statsData, chartDataRes]) => {
+      setStats(statsData)
+      setChartData(chartDataRes)
+    }).finally(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -159,6 +164,13 @@ export default function DashboardV2() {
           </div>
         </div>
       </div>
+
+      {/* Graphique évolution */}
+      {chartData && (
+        <div style={{ marginBottom: 32 }}>
+          <PipelineChart data={chartData} />
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Top Prospects */}
