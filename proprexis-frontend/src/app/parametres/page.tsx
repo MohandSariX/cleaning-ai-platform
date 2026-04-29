@@ -34,7 +34,7 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: {
           <div style={{ width: 30, height: 30, borderRadius: 8, background: '#3b82f618', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon size={14} color="#3b82f6" />
           </div>
-          <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14 }}>{title}</span>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>{title}</span>
         </div>
         {open ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
       </div>
@@ -159,7 +159,7 @@ export default function ParametresPage() {
       )}
 
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0 }}>Paramètres</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Paramètres</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 6, fontSize: 13 }}>
           Infos société, tarifs et configuration des devis
         </p>

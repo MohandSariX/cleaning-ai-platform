@@ -31,58 +31,61 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* ── Sidebar ── */}
           <aside style={{
-            width: 220,
-            minWidth: 220,
-            background: 'var(--surface)',
+            width: 240,
+            minWidth: 240,
+            background: 'var(--sidebar-bg, var(--surface))',
             borderRight: '1px solid var(--border)',
             display: 'flex',
             flexDirection: 'column',
-            padding: '24px 12px',
+            padding: '24px 16px',
             gap: 4,
           }}>
             {/* Logo */}
-            <div style={{ padding: '0 12px 24px' }}>
-              <div style={{
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 800,
-                fontSize: 20,
-                color: 'var(--text)',
+            <div style={{ padding: '0 12px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="logo-text" style={{
+                fontSize: 22,
+                color: 'var(--sidebar-text, var(--text))',
                 letterSpacing: '-0.5px',
               }}>
                 Proprexis
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: 'var(--sidebar-text-muted, var(--text-muted))', marginTop: 4, fontWeight: 500 }}>
                 CRM & Gestion
               </div>
             </div>
 
             {/* Nav */}
-            {nav.map(({ href, label, icon: Icon }) => {
-              const active = path === href
-              return (
-                <Link key={href} href={href} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '9px 12px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? 'var(--text)' : 'var(--text-muted)',
-                  background: active ? 'var(--border)' : 'transparent',
-                  textDecoration: 'none',
-                  transition: 'all 0.15s',
-                }}>
-                  <Icon size={16} strokeWidth={active ? 2.5 : 1.8} />
-                  {label}
-                </Link>
-              )
-            })}
+            <div style={{ paddingTop: 16 }}>
+              {nav.map(({ href, label, icon: Icon }) => {
+                const active = path === href || (href !== '/' && path?.startsWith(href))
+                return (
+                  <Link key={href} href={href} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '11px 14px',
+                    marginBottom: 4,
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: active ? 600 : 500,
+                    color: active ? '#ffffff' : 'var(--sidebar-text-muted, var(--text-muted))',
+                    background: active ? 'var(--accent, var(--border))' : 'transparent',
+                    textDecoration: 'none',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => !active && (e.currentTarget.style.background = 'var(--sidebar-hover, var(--border-soft))')}
+                  onMouseLeave={e => !active && (e.currentTarget.style.background = 'transparent')}>
+                    <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+                    {label}
+                  </Link>
+                )
+              })}
+            </div>
 
             {/* Bottom */}
-            <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <ThemeToggle />
-              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 10, color: 'var(--sidebar-text-muted, var(--text-dim))', opacity: 0.6 }}>
                 Version 0.1.0 — Beta
               </div>
             </div>

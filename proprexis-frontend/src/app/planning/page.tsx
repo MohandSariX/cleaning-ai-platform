@@ -59,7 +59,7 @@ function ChantierCard({ chantier }: { chantier: Chantier }) {
     <div className="card" style={{ padding: '20px 24px', marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 700, margin: '0 0 4px', color: 'var(--text)' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px', color: 'var(--text)' }}>
             {chantier.titre}
           </h3>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -124,7 +124,7 @@ export default function PlanningPage() {
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1200 }}>
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontFamily: 'Syne', fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px' }}>
           <Calendar size={28} style={{ display: 'inline', marginRight: 10, verticalAlign: 'middle' }} />
           Planning
         </h1>
@@ -144,7 +144,7 @@ export default function PlanningPage() {
         <>
           {planifies.length > 0 && (
             <div style={{ marginBottom: 32 }}>
-              <h2 style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
                 📅 À venir ({planifies.length})
               </h2>
               {planifies.map(chantier => <ChantierCard key={chantier.id} chantier={chantier} />)}

@@ -35,7 +35,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function PipelineChart({ data }: { data: ChartData }) {
   return (
     <div className="card" style={{ padding: '24px' }}>
-      <h3 style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 700, margin: '0 0 20px' }}>
+      <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 20px' }}>
         📈 Évolution pipeline (7 derniers jours)
       </h3>
       <ResponsiveContainer width="100%" height={280}>

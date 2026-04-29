@@ -36,29 +36,54 @@ type DashboardStats = {
   }>
 }
 
-function StatCard({ icon: Icon, label, value, color }: {
+function StatCard({ icon: Icon, label, value, color, featured }: {
   icon: React.ElementType
   label: string
   value: string | number
   color: string
+  featured?: boolean
 }) {
   return (
-    <div className="card" style={{ padding: '20px 24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="card" style={{
+      padding: '24px',
+      background: featured ? color : 'var(--card)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        width: 56,
+        height: 56,
+        borderRadius: 12,
+        background: featured ? 'rgba(255,255,255,0.2)' : `${color}15`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Icon size={28} color={featured ? '#ffffff' : color} strokeWidth={2} />
+      </div>
+      <div>
         <div style={{
-          width: 48, height: 48, borderRadius: 12,
-          background: `${color}15`, display: 'flex',
-          alignItems: 'center', justifyContent: 'center'
+          fontSize: 11,
+          color: featured ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: 8
         }}>
-          <Icon size={22} color={color} strokeWidth={2} />
+          {label}
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-            {label}
-          </div>
-          <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>
-            {value}
-          </div>
+        <div style={{
+          fontFamily: 'DM Sans',
+          fontSize: 28,
+          fontWeight: 700,
+          color: featured ? '#ffffff' : 'var(--text)',
+          lineHeight: 1,
+          letterSpacing: '-0.5px'
+        }}>
+          {value}
         </div>
       </div>
     </div>
@@ -94,8 +119,8 @@ export default function DashboardV2() {
     <div style={{ padding: '32px 36px', maxWidth: 1400 }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontFamily: 'Syne', fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
-          Command Center
+        <h1 style={{ margin: 0 }}>
+          Dashboard
         </h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 6, fontSize: 14 }}>
           Ce que Claude a fait aujourd'hui
@@ -104,10 +129,17 @@ export default function DashboardV2() {
 
       {/* Stats aujourd'hui */}
       <div style={{ marginBottom: 32 }}>
-        <h2 style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text)' }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text)' }}>
           ⚡ Activité du jour
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+          <StatCard
+            icon={TrendingUp}
+            label="Montant généré"
+            value={`${stats.today.devis_total_ttc.toLocaleString('fr-FR')} €`}
+            color="#f5a623"
+            featured
+          />
           <StatCard
             icon={Mail}
             label="Emails envoyés"
@@ -121,23 +153,17 @@ export default function DashboardV2() {
             color="#22c55e"
           />
           <StatCard
-            icon={TrendingUp}
-            label="Montant TTC"
-            value={`${stats.today.devis_total_ttc.toLocaleString('fr-FR')}€`}
-            color="#f97316"
-          />
-          <StatCard
             icon={Zap}
             label="Réponses reçues"
             value={stats.today.replies_received}
-            color="#a78bfa"
+            color="#8b5cf6"
           />
         </div>
       </div>
 
       {/* Pipeline */}
       <div style={{ marginBottom: 32 }}>
-        <h2 style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text)' }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text)' }}>
           📊 Pipeline
         </h2>
         <div className="card" style={{ padding: '24px' }}>
@@ -151,10 +177,10 @@ export default function DashboardV2() {
             ].map((stage, i) => (
               <div key={i} style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{
-                  fontSize: 32, fontWeight: 800, fontFamily: 'Syne',
-                  color: stage.color, marginBottom: 8
+                  fontSize: 28, fontWeight: 700, fontFamily: 'DM Sans',
+                  color: stage.color, marginBottom: 8, letterSpacing: '-0.5px'
                 }}>
-                  {stage.value}
+                  {stage.value.toLocaleString('fr-FR')}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {stage.label}
@@ -175,7 +201,7 @@ export default function DashboardV2() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Top Prospects */}
         <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>
             🔥 Top Prospects (score &gt;80)
           </h3>
           {stats.top_prospects.length === 0 ? (
@@ -198,8 +224,9 @@ export default function DashboardV2() {
                     </div>
                   </div>
                   <div style={{
-                    fontSize: 18, fontWeight: 800, fontFamily: 'Syne',
-                    color: p.lead_score >= 90 ? '#22c55e' : p.lead_score >= 85 ? '#f97316' : '#eab308'
+                    fontSize: 18, fontWeight: 700, fontFamily: 'DM Sans',
+                    color: p.lead_score >= 90 ? '#22c55e' : p.lead_score >= 85 ? '#f97316' : '#eab308',
+                    letterSpacing: '-0.5px'
                   }}>
                     {p.lead_score}
                   </div>
@@ -211,7 +238,7 @@ export default function DashboardV2() {
 
         {/* Timeline activité */}
         <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>
             <Activity size={16} style={{ display: 'inline', marginRight: 6 }} />
             Timeline activité
           </h3>
