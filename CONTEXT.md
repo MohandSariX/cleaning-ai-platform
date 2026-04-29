@@ -287,17 +287,23 @@ curl -X POST http://localhost:8000/api/outreach/send-test
   - Optimisation continue (20h)
   - **Tests complets** : 28 tests (memory, tools, autonomy, assistant)
 
-### En cours
-- 🔄 **Enrichissement données** : Lancer agents Pappers/DVF/Permis sur les 1593 prospects existants
+### En cours — REFACTORING
+- 🔄 **Phase 3.5** : Multi-tenant (fondations)
+- 🔄 **Phase 3.6** : Produits en base (remplace devis_rules.json)
 
-### Prochaine grande étape
-- 🔜 **Phase 4** : Gestion chantiers autonome + Facturation auto + Qonto API
+### Prochaine phase — DÉVELOPPEMENT (société pas encore créée)
+- 🔜 **Phase 4** : Frontend avancé (dashboard exécutif, analytics, Kanban)
+- 🔜 **Phase 5** : Gestion chantiers (logique interne + facturation SIMULÉE)
+- 🔜 **Phase 6** : Devis avancés & templates personnalisables
+- 🔜 **Phase 7** : Tests & optimisations (>80% coverage)
+- 🔜 **Phase 8** : Site vitrine proprexis.fr (préparation)
 
-### À venir
-- Phase 4B : Comptabilité SAS + TVA + Prévision trésorerie
-- Phase 5 : Site vitrine + SEO + GMB + Appels d'offres publics
-- Phase 6 : Intelligence business + Expansion automatique
-- Phase 7 : Autonomie totale + Auto-diagnostic
+### Phases PRODUCTION — Nécessitent société ouverte (SIRET + Qonto)
+- ⚫ **Phase 9** : Création SAS + Qonto API + Facturation légale
+- ⚫ **Phase 10** : Comptabilité SAS + TVA réelle + Expert-comptable
+- ⚫ **Phase 11** : Appels d'offres publics (besoin SIRET)
+- ⚫ **Phase 12** : Expansion géographique + Intelligence business
+- ⚫ **Phase 13** : Autonomie totale + Auto-diagnostic
 
 ---
 

@@ -103,7 +103,7 @@ export default function ProspectsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
+          <h1 style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
             Prospects
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: 14 }}>

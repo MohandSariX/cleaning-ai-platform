@@ -15,8 +15,9 @@ type Societe = {
 }
 
 type Tarif = {
-  cle: string; label: string; description: string
-  tarif_m2: number | null; tarif_horaire: number | null; minimum_ht: number
+  id: number; name: string; description: string
+  unit: string; unit_price_ht: number; minimum_ht: number | null
+  category: string; active: boolean
 }
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
@@ -33,7 +34,7 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: {
           <div style={{ width: 30, height: 30, borderRadius: 8, background: '#3b82f618', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon size={14} color="#3b82f6" />
           </div>
-          <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14 }}>{title}</span>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>{title}</span>
         </div>
         {open ? <ChevronUp size={15} color="var(--text-muted)" /> : <ChevronDown size={15} color="var(--text-muted)" />}
       </div>
@@ -69,9 +70,9 @@ export default function ParametresPage() {
   const [societe, setSociete] = useState<Societe | null>(null)
   const [tarifs, setTarifs] = useState<Tarif[]>([])
   const [savingSociete, setSavingSociete] = useState(false)
-  const [savingTarif, setSavingTarif] = useState<string | null>(null)
+  const [savingTarif, setSavingTarif] = useState<number | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
-  const [editedTarifs, setEditedTarifs] = useState<Record<string, Partial<Tarif>>>({})
+  const [editedTarifs, setEditedTarifs] = useState<Record<number, Partial<Tarif>>>({})
   const [simulResult, setSimulResult] = useState<any>(null)
   const [simul, setSimul] = useState({ type: 'bureaux', superficie: '200', frequence: 'hebdo' })
 
@@ -81,14 +82,14 @@ export default function ParametresPage() {
   }
 
   const load = async () => {
-    const [rulesRes, tarifsRes] = await Promise.all([
-      fetch(`${API}/api/devis-rules`),
-      fetch(`${API}/api/devis-rules/tarifs`),
+    const [societeRes, productsRes] = await Promise.all([
+      fetch(`${API}/api/tenants/owner/config`),
+      fetch(`${API}/api/products`),
     ])
-    const rules = await rulesRes.json()
-    const tarifsData = await tarifsRes.json()
-    setSociete(rules.societe)
-    setTarifs(tarifsData)
+    const societeData = await societeRes.json()
+    const productsData = await productsRes.json()
+    setSociete(societeData)
+    setTarifs(productsData)
   }
 
   useEffect(() => { load() }, [])
@@ -97,7 +98,7 @@ export default function ParametresPage() {
     if (!societe) return
     setSavingSociete(true)
     try {
-      const res = await fetch(`${API}/api/devis-rules/societe`, {
+      const res = await fetch(`${API}/api/tenants/owner/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(societe),
@@ -108,12 +109,12 @@ export default function ParametresPage() {
     setSavingSociete(false)
   }
 
-  const saveTarif = async (cle: string) => {
-    const edit = editedTarifs[cle]
+  const saveTarif = async (productId: number) => {
+    const edit = editedTarifs[productId]
     if (!edit) return
-    setSavingTarif(cle)
+    setSavingTarif(productId)
     try {
-      const res = await fetch(`${API}/api/devis-rules/tarifs/${cle}`, {
+      const res = await fetch(`${API}/api/products/${productId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(edit),
@@ -121,7 +122,7 @@ export default function ParametresPage() {
       if (res.ok) {
         showToast('Tarif mis à jour ✓')
         const updated = { ...editedTarifs }
-        delete updated[cle]
+        delete updated[productId]
         setEditedTarifs(updated)
         await load()
       }
@@ -158,7 +159,7 @@ export default function ParametresPage() {
       )}
 
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0 }}>Paramètres</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Paramètres</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 6, fontSize: 13 }}>
           Infos société, tarifs et configuration des devis
         </p>
@@ -206,51 +207,53 @@ export default function ParametresPage() {
             <span>Prestation</span><span>Tarif</span><span>Min HT</span>
           </div>
           {tarifs.map(tarif => {
-            const edit = editedTarifs[tarif.cle] || {}
-            const modified = !!editedTarifs[tarif.cle]
+            const edit = editedTarifs[tarif.id] || {}
+            const modified = !!editedTarifs[tarif.id]
+            const isHourly = tarif.unit === 'heure'
+            const unitLabel = isHourly ? '€/h' : '€/' + tarif.unit
             return (
-              <div key={tarif.cle} style={{
+              <div key={tarif.id} style={{
                 display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0 10px',
                 alignItems: 'center', padding: '10px 0',
                 borderBottom: '1px solid var(--border)',
               }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tarif.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tarif.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{tarif.description}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <input
                     type="number"
                     step="0.5"
-                    value={edit.tarif_m2 ?? tarif.tarif_m2 ?? edit.tarif_horaire ?? tarif.tarif_horaire ?? ''}
+                    value={edit.unit_price_ht ?? tarif.unit_price_ht ?? ''}
                     onChange={e => {
                       const val = parseFloat(e.target.value)
                       setEditedTarifs(prev => ({
                         ...prev,
-                        [tarif.cle]: {
-                          ...prev[tarif.cle],
-                          [tarif.tarif_m2 !== null ? 'tarif_m2' : 'tarif_horaire']: val
+                        [tarif.id]: {
+                          ...prev[tarif.id],
+                          unit_price_ht: val
                         }
                       }))
                     }}
                     style={{ width: 70, padding: '6px 8px', borderRadius: 6, border: `1px solid ${modified ? '#3b82f6' : 'var(--border)'}`, background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}
                   />
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tarif.tarif_m2 !== null ? '€/m²' : '€/h'}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unitLabel}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <input
                     type="number"
-                    value={edit.minimum_ht ?? tarif.minimum_ht}
-                    onChange={e => setEditedTarifs(prev => ({ ...prev, [tarif.cle]: { ...prev[tarif.cle], minimum_ht: parseFloat(e.target.value) } }))}
+                    value={edit.minimum_ht ?? tarif.minimum_ht ?? ''}
+                    onChange={e => setEditedTarifs(prev => ({ ...prev, [tarif.id]: { ...prev[tarif.id], minimum_ht: parseFloat(e.target.value) } }))}
                     style={{ width: 70, padding: '6px 8px', borderRadius: 6, border: `1px solid ${modified ? '#3b82f6' : 'var(--border)'}`, background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}
                   />
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>€</span>
                   {modified && (
-                    <button onClick={() => saveTarif(tarif.cle)} disabled={savingTarif === tarif.cle} style={{
+                    <button onClick={() => saveTarif(tarif.id)} disabled={savingTarif === tarif.id} style={{
                       padding: '5px 10px', borderRadius: 6, border: 'none', background: '#3b82f6',
                       color: 'white', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
                     }}>
-                      {savingTarif === tarif.cle ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                      {savingTarif === tarif.id ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
                       Sauver
                     </button>
                   )}

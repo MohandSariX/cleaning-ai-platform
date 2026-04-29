@@ -37,7 +37,7 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
       </div>
       <div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontFamily: 'Syne', fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
       </div>
     </div>
   )
@@ -84,7 +84,7 @@ function NewChantierModal({ onClose, onCreated }: { onClose: () => void; onCreat
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="card" style={{ width: 560, maxHeight: '88vh', overflowY: 'auto', padding: 32 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, margin: 0 }}>Nouveau chantier</h2>
+          <h2 style={{ fontFamily: 'DM Sans', fontSize: 18, fontWeight: 700, margin: 0 }}>Nouveau chantier</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
         </div>
 
@@ -215,7 +215,7 @@ export default function ChantiersPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0 }}>Chantiers</h1>
+          <h1 style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, margin: 0 }}>Chantiers</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: 14 }}>{chantiers.length} chantier{chantiers.length > 1 ? 's' : ''}</p>
         </div>
         <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -254,7 +254,7 @@ export default function ChantiersPage() {
         ) : chantiers.length === 0 ? (
           <div style={{ padding: 64, textAlign: 'center' }}>
             <Briefcase size={40} color="var(--text-dim)" style={{ margin: '0 auto 16px' }} />
-            <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Aucun chantier encore</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Aucun chantier encore</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>Planifie ta première intervention.</div>
             <button onClick={() => setShowModal(true)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               + Créer un chantier

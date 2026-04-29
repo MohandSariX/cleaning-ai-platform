@@ -1,24 +1,22 @@
-# Proprexis — Roadmap & Vision Complète v2
-*Mise à jour : Mars 2026*
+# Proprexis — Roadmap Développement v3
+*Mise à jour : Avril 2026*
 
 ---
 
 ## 🏢 Contexte & Objectif
 
-**Proprexis** est une entreprise de nettoyage professionnel en cours de création, fondée par **Mohand Sari**.
+**Proprexis** est une entreprise de nettoyage professionnel en cours de développement, fondée par **Mohand Sari**.
 
-### Statut juridique
-SAS — à créer avant ouverture de l'activité
+### Statut actuel
+🔧 **Phase de développement informatique** — Société pas encore créée
 
-### Zone d'intervention
+### Zone d'intervention future
 Île-de-France — départements prioritaires : 94, 93, 92, 77, 75, 91
 
 ### Clientèle cible
 - Entreprises BTP / Fin de chantier
-- Promoteurs immobiliers
-- Agences immobilières
-- Syndics de copropriété
-- Architectes
+- Promoteurs immobiliers / Agences immobilières
+- Syndics de copropriété / Architectes
 - Bureaux / locaux professionnels
 - Hôtels, restaurants, commerces
 
@@ -26,9 +24,6 @@ SAS — à créer avant ouverture de l'activité
 **Mohand réalise les chantiers et encaisse les paiements. Claude gère tout le reste.**
 
 Un système entièrement autonome piloté par une IA associée qui prend des décisions dans un cadre défini, notifie sur Telegram et rend compte de ses actions en temps réel.
-
-### Banque professionnelle
-**Qonto** — API disponible pour intégration complète (solde, virements, rapprochement)
 
 ---
 
@@ -41,43 +36,54 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 - Valide les actions importantes
 - Reçoit les briefings de Claude chaque matin
 
-### Claude — Associée IA
+### Claude — Associée IA (Groq API)
 - Pilote tous les agents
 - Prospecte, qualifie, envoie les devis
-- Gère la trésorerie et la comptabilité
-- Surveille la santé de l'entreprise
+- Surveille la santé du système
 - Prend des décisions dans le cadre défini
 - Rend compte à Mohand via Telegram
 - Ne dort jamais, ne prend pas de vacances
 
 ---
 
-## 🤖 Architecture actuelle — Ce qui tourne
+## 🤖 Stack technique actuelle
 
-### Stack technique
-- **Backend** : Python 3.11, FastAPI, PostgreSQL, SQLAlchemy
-- **Frontend** : Next.js 14, Tailwind CSS
-- **IA locale** : Ollama / phi3:mini (dev) → Mistral 7B (prod, 32Go RAM)
-- **IA cloud** : Claude API — claude-sonnet (associée IA)
-- **Notifications** : Telegram Bot
-- **Email** : Gmail API (contact.proprexis@gmail.com)
-- **Banque** : Qonto API
+### Backend
+- **Python 3.11** + FastAPI + PostgreSQL + SQLAlchemy
+- **IA** : Groq API (llama-3.3-70b-versatile, gratuit)
+- **IA locale** : Ollama / phi3:mini (qualification prospects)
+- **Notifications** : Telegram Bot (polling)
+- **Email** : Gmail API
 - **PDF** : ReportLab
-- **Scheduler** : APScheduler
+- **Scheduler** : APScheduler (12 jobs)
 
-### Agents actifs aujourd'hui
+### Frontend
+- **Next.js 14** + Tailwind CSS
+- Thème dark/light persistant
+- Dashboard temps réel
+
+### Agents actifs (12 jobs schedulés)
 | Agent | Fréquence | Rôle |
 |-------|-----------|------|
-| Scraper Pages Jaunes | Chaque nuit 23h | Scrape le département du jour |
-| Lead Scorer | Après scraping | Score chaque prospect /100 |
-| Email Outreach | Toutes les 10min (9h-18h) | Envoie les emails de prospection |
+| Scraper Pages Jaunes | Chaque nuit 23h | Scrape prospects par département |
+| Lead Scorer | Après scraping | Score 300pts → /100 |
+| Email Outreach | Toutes les 10min (9h-18h) | Envoie emails prospection (50/j max) |
 | Gmail Check | Toutes les 15min | Lit les réponses reçues |
-| Qualification IA | À chaque réponse | Dialogue, pose les questions, envoie le devis |
-| Watchdog | Toutes les heures | Factures en retard, relances, chantiers du jour |
-| Pappers Enricher | Chaque jour 6h | Enrichit avec CA, dirigeant, SIRET |
-| Email Finder | Chaque jour 7h | Cherche les emails manquants |
-| Permis Construire | 1er du mois 5h | Scrape les nouveaux chantiers IDF |
-| Rapport Telegram | Chaque jour 7h | Briefing matinal complet |
+| Qualification IA | À chaque réponse | Dialogue, devis, confirmation |
+| Watchdog | Toutes les heures | Surveillance système |
+| Pappers Enricher | Chaque jour 6h | Enrichit CA, dirigeant, SIRET |
+| Email Finder | Chaque jour 7h | Cherche emails manquants |
+| Permis Construire | 1er du mois 5h | Scrape nouveaux chantiers IDF |
+| DVF | 1er du mois 4h | Transactions immobilières IDF |
+| Claude Briefing | Chaque jour 8h | Briefing quotidien Telegram |
+| Claude Report | Lundi 9h | Rapport hebdomadaire |
+| Claude Optimize | Chaque jour 20h | Optimisation continue |
+
+---
+
+# 🟢 DÉVELOPPEMENT — Phases avant ouverture société
+
+> **Ces phases sont développables MAINTENANT sans créer l'entreprise**
 
 ---
 
@@ -96,13 +102,13 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 - Historique complet par prospect
 
 ### 1.3 Moteur de devis intelligent ✅
-- Fichier devis_rules.json éditable depuis le dashboard
+- Fichier devis_rules.json éditable depuis dashboard
 - Grille tarifaire : fin de chantier, bureaux, copropriété, vitrerie
 - Calcul au réel (tarif m² × superficie)
-- Contrats ponctuel / hebdo / mensuel / trimestriel / annuel
-- Simulateur de devis dans les paramètres
+- Contrats : ponctuel / hebdo / mensuel / trimestriel / annuel
+- Simulateur de devis dans paramètres
 
-### 1.4 Infos légales complètes ✅
+### 1.4 Infos légales dynamiques ✅
 - SIRET, IBAN, BIC, TVA depuis devis_rules.json
 - PDF devis et facture lisent les infos dynamiquement
 - CGV en annexe PDF automatique
@@ -121,10 +127,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🔄 PHASE 2 — Enrichissement (EN COURS)
-
-### 2.1 Google Maps ⏸️
-Reporté — valeur ajoutée limitée vs complexité
+## ✅ PHASE 2 — Enrichissement données (COMPLÉTÉ)
 
 ### 2.2 Pappers.fr ✅
 - API gratuite (400 req/mois)
@@ -132,22 +135,24 @@ Reporté — valeur ajoutée limitée vs complexité
 - Bonus score +5 à +15 points selon CA
 - Tourne chaque matin à 6h
 
-### 2.3 Societe.com ❌
-Abandonné — doublon Pappers
-
 ### 2.4 Permis de construire SITADEL ✅
-- CSV mensuel téléchargé automatiquement le 1er du mois
+- CSV mensuel téléchargé le 1er du mois
 - Filtre départements IDF + codes APE pertinents
-- 696 prospects créés sur premier run
 - Signal fort : chantier dans 6-18 mois
 
-### 2.5 DVF — Transactions immobilières 🔜
+### 2.5 DVF — Transactions immobilières ✅
 - API data.gouv gratuite
-- Transaction récente = nouveau propriétaire = besoin nettoyage
+- Transaction récente = nouveau propriétaire
+- 52 376 prospects IDF créés
 
-### 2.6 Score enrichi 300 points 🔜
-- Croiser toutes les sources
-- Score = probabilité réelle de conversion
+### 2.6 Score enrichi 300 points ✅
+- **4 catégories** :
+  - Joignabilité (80pts) : emails, téléphones
+  - Identité (60pts) : site web, Pappers, SIRET
+  - Potentiel (80pts) : zone, CA, effectifs
+  - Signaux (80pts) : permis, DVF, industrie
+- **Normalisation** : 300pts → /100
+- **Endpoint** : POST `/api/scoring/run`
 
 ### 2.7 Email Finder ✅
 - Scraping BeautifulSoup page contact
@@ -156,282 +161,433 @@ Abandonné — doublon Pappers
 
 ---
 
-## 🤖 PHASE 3 — Claude, l'Associée IA
+## ✅ PHASE 3 — Claude l'associée IA (COMPLÉTÉ)
 
-### Vision
-Claude est branchée sur toutes les APIs de l'entreprise. Elle a une mémoire persistante, une personnalité définie, et une connaissance totale de Proprexis. Tu lui parles naturellement sur Telegram comme à une vraie associée.
+### Architecture
+- **Groq API** (llama-3.3-70b-versatile) — gratuit
+- **Mémoire PostgreSQL** persistante (ai_memory, ai_decisions, conversation_history)
+- **Interface Telegram** long polling (dev local)
+- **6 CRM tools** pour function calling :
+  - `get_prospects` — Récupère prospects avec filtres
+  - `update_prospect` — Modifie statut/notes
+  - `send_prospecting_email` — Envoie email
+  - `enrich_prospect_pappers` — Enrichit via Pappers
+  - `generate_quote` — Génère devis
+  - `get_crm_statistics` — Stats CRM
 
-### Stack technique
-- **Claude API** (claude-sonnet-4) — raisonnement nuancé
-- **Mémoire PostgreSQL** — tout ce qui a été dit, décidé, planifié
-- **Interface** : Telegram (conversation) + Dashboard (tableau de bord)
-- **Accès complet** : toutes les APIs CRM + Qonto
+### Autonomie & Escalation
+- **Emails** : 50/jour max, 9h-18h
+- **Enrichissement** : 50€/jour budget Pappers
+- **Devis** : <10k€ autonome, >10k€ → escalation Mohand
+- **Négociation** : <15% discount autonome
 
-### Ce que Claude fait seule — Prospection
-```
-SI pipeline < 20 prospects chauds → intensifie le scraping
-SI taux_reponse < 5% sur 7 jours → change les templates
-SI CA_prevu < objectif → élargit la zone géographique
-SI prospect score > 85 et pas contacté depuis 3j → relance prioritaire
-SI prospect répond → qualifie, génère le devis, l'envoie
-SI devis accepté → crée le chantier, envoie la confirmation
-```
+### Briefings & Rapports
+- **Quotidien** (8h) : Stats, décisions, alertes, plan du jour
+- **Hebdomadaire** (lundi 9h) : KPIs, évolution, recommandations
+- **Optimisation** (20h) : A/B testing, analyse performance emails
 
-### Ce que Claude fait seule — Finance
-```
-SI facture impayée > 30j → envoie relance email automatique
-SI facture impayée > 60j → génère mise en demeure PDF
-SI facture impayée > 90j → alerte Mohand avec dossier complet
-SI virement reçu sur Qonto → rapproche avec facture, marque payée
-SI solde Qonto < seuil_alerte → alerte Mohand immédiatement
-SI CA_mensuel atteint 80% seuil TVA → alerte et prépare transition
-SI fin de mois → prépare récapitulatif comptable pour expert-comptable
-```
-
-### Ce que Claude fait seule — Opérationnel
-```
-SI chantier terminé → génère facture, envoie au client
-SI chantier terminé → envoie email satisfaction J+2
-SI satisfaction positive → demande avis Google J+5
-SI satisfaction négative → alerte Mohand + propose geste commercial
-SI contrat récurrent expire dans 30j → envoie proposition renouvellement
-SI nouveau chantier signé → optimise le planning de la semaine
-SI matériel à réapprovisionner → alerte Mohand avec liste
-```
-
-### Ce que Claude fait seule — Veille
-```
-Chaque semaine → scrape appels d'offres publics < 40 000€ IDF
-Chaque semaine → vérifie avis Google, répond automatiquement
-Chaque mois → benchmark tarifaire concurrents
-Chaque mois → ajuste devis_rules.json si nécessaire
-Chaque trimestre → analyse saisonnalité et adapte les zones de scraping
-```
-
-### Ce que Claude te demande (intervention Mohand)
-- Décisions hors cadre défini
-- Négociations importantes (> 5 000€)
-- Situations nouvelles non anticipées
-- Validation des ajustements tarifaires importants
-- Signature des documents légaux
-
-### Briefing matinal quotidien (7h Telegram)
-```
-🌅 Bonjour Mohand — Rapport Proprexis
-
-📊 Hier :
-- 12 emails envoyés, 2 réponses
-- 1 devis envoyé (1 920€ TTC)
-- 47 nouveaux prospects scrappés
-
-💰 Trésorerie :
-- Solde Qonto : X €
-- Attendu ce mois : X €
-- Prévision mois prochain : X €
-
-🎯 Mes décisions d'hier :
-- J'ai relancé 3 prospects à J+7
-- J'ai changé le template BTP (taux réponse trop faible)
-- J'ai mis en retard la facture FAC-2026-003
-
-📋 Ce que j'attends de toi :
-- Décision sur le prospect [X] qui négocie
-- Validation du nouveau tarif vitrerie
-```
-
-### Rapport hebdomadaire (lundi 8h)
-- CA semaine vs objectif
-- Pipeline complet avec probabilités
-- Top 5 prospects à convertir
-- Analyse de ce qui a marché / pas marché
-- Plan d'action semaine suivante
+### Tests complets ✅
+- **28 tests** répartis sur 4 fichiers
+- `test_claude_memory.py` (8 tests)
+- `test_claude_tools.py` (6 tests)
+- `test_claude_autonomy.py` (8 tests)
+- `test_claude_assistant.py` (6 tests)
 
 ---
 
-## 🟡 PHASE 4 — Gestion chantiers autonome
-
-### 4.1 Création chantier automatique
-- Signature → chantier créé + Google Calendar sync
-- Email confirmation client avec créneau exact
-- Feuille d'intervention générée automatiquement
-
-### 4.2 Planification intelligente
-- Optimisation trajets (regrouper par zone)
-- Contraintes : pas avant 8h, pas le dimanche
-- Rappel Telegram 2h avant avec adresse + nom client + accès
-
-### 4.3 Facturation automatique complète
-- Chantier terminé → facture PDF générée et envoyée
-- Contrats récurrents → facture le 1er du mois
-- Relances J+30, J+45, J+60
-- Mise en demeure PDF à J+60
-- Intégration Stripe → bouton "Payer en ligne"
-- Rapprochement automatique Qonto
-
-### 4.4 Agent satisfaction
-- J+2 → email satisfaction automatique
-- Réponse positive → demande avis Google J+5
-- Réponse négative → alerte Mohand + geste commercial
-- Pas de réponse → relance J+5
-
-### 4.5 Gestion contrats récurrents
-- Passages planifiés automatiquement sur l'année
-- Rappel renouvellement 30j avant expiration
-- Proposition reconduction automatique
 
 ---
 
-## 💼 PHASE 4B — Comptabilité & Finance SAS
+## 🔷 PHASE 3.5 — Multi-tenant (FONDATIONS)
 
-### 4B.1 Intégration Qonto API
-- Lecture solde en temps réel
-- Récupération de tous les mouvements
-- Rapprochement automatique factures / virements
-- Alerte si paiement reçu non identifié
+> **Préparer le système pour supporter plusieurs utilisateurs/entreprises**
 
-### 4B.2 Suivi TVA SAS
-- Calcul TVA collectée (factures émises)
-- Calcul TVA déductible (achats, charges)
-- Solde TVA à payer chaque mois
-- Préparation déclaration CA3 pour validation Mohand
-- Alerte si anomalie détectée
+### 3.5.1 Modèle Tenant
+- **Table `tenants`** : id, name, email, plan, status, created_at
+  - Plans : `owner` | `starter` | `pro` | `enterprise`
+  - Status : `active` | `suspended` | `blocked`
+- **Table `tenant_config`** : Configuration par tenant
+  - gmail credentials, telegram tokens, zones_json
+  - max_emails_per_day, credentials_encrypted
+- **Table `tenant_subscription`** : Abonnements & facturation
+  - plan, price_monthly, next_billing_date, status
 
-### 4B.3 Préparation comptable mensuelle
-- Regroupement automatique de tous les documents
-- Factures émises + factures reçues + relevés Qonto
-- Export propre pour l'expert-comptable
-- Rapport mensuel : CA, charges, résultat estimé
+### 3.5.2 Migration tenant_id
+- Ajouter colonne `tenant_id` (nullable, FK) sur :
+  - prospects, clients, email_logs, conversations
+  - activity_logs, devis, factures, chantiers
+- Créer tenant "owner" par défaut :
+  - name="Proprexis", email="contact.proprexis@gmail.com"
+  - plan="owner", status="active"
 
-### 4B.4 Prévision trésorerie
-- Projection à 30, 60, 90 jours
-- Croise : devis signés + factures en attente + charges fixes
-- Alerte si trésorerie prévisionnelle négative
-- Recommandation : accélérer les encaissements ou réduire les charges
-
-### 4B.5 Tableau de bord financier
-- CA réel vs objectif en temps réel
-- Marge par type de chantier
-- Délai moyen de paiement clients
-- Charges fixes vs variables
-- Seuil de rentabilité mensuel
-
-### 4B.6 Dividendes et rémunération
-- Calcul du résultat disponible pour dividendes
-- Optimisation fiscale : salaire président vs dividendes
-- Alerte si résultat insuffisant pour se payer
+### 3.5.3 Tests
+- `test_tenant.py` : CRUD tenant, config, subscription
+- Vérifier isolation des données par tenant
 
 ---
 
-## 🟢 PHASE 5 — Croissance & Réputation
+## 🔶 PHASE 3.6 — Produits en base (REFACTORING)
 
-### 5.1 Site vitrine proprexis.fr
-- Design pro, formulaire devis → CRM automatique
-- Chat Claude 24h/24 pour qualifier les visiteurs
-- Pages SEO par ville générées automatiquement
+> **Remplacer devis_rules.json par une table PostgreSQL**
 
-### 5.2 Agent SEO
-- Contenu par ville et secteur
-- Objectif : prospects entrants sans prospection
+### 3.6.1 Modèle Product
+- **Table `products`** : Catalogue produits/services
+  - id, tenant_id, name, description, category
+  - unit, unit_price_ht, tva_rate, minimum_ht, active
+  - Categories : `prestation` | `forfait` | `materiel`
+  - Units : `m2` | `heure` | `forfait` | `mois` | `unite`
 
-### 5.3 Agent réputation Google
-- Surveille les avis en temps réel
-- Répond automatiquement par IA
-- Alerte si note < 4.5
-- Demande d'avis ciblée aux meilleurs clients
+### 3.6.2 Lignes de devis/factures
+- **Table `devis_lines`** : Lignes détaillées par devis
+  - id, devis_id, product_id, description, quantity
+  - unit_price_ht, tva_rate, total_ht
+- **Table `facture_lines`** : Lignes détaillées par facture
+  - Même structure que devis_lines
 
-### 5.4 Appels d'offres publics
-- Scrape Marchés Publics chaque semaine
-- Filtre : nettoyage + IDF + < 40 000€
-- Dossier préparé automatiquement
-- Alerte Mohand avec date limite
+### 3.6.3 Migration données
+- Script one-shot : migrer devis_rules.json → table products
+- Supprimer devis_rules.json définitivement
+- Adapter `devis_engine.py` pour lire depuis Product
+  - Garder interface : `calculate(type, superficie, frequence)`
 
-### 5.5 Google My Business automatisé
-- Chaque chantier terminé → photo publiée + description
-- Mise à jour horaires, services automatique
-- Remontée SEO local progressive
+### 3.6.4 API Produits
+- **POST /api/products** : Créer produit
+- **GET /api/products** : Liste produits (filtres)
+- **PATCH /api/products/{id}** : Modifier produit
+- **DELETE /api/products/{id}** : Désactiver (soft delete)
 
-### 5.6 Agent veille marché
-- Surveille prix concurrents Pages Jaunes / Google
-- Ajuste devis_rules.json si nécessaire
-- Détecte nouveaux concurrents dans la zone
-
-### 5.7 Partenariats automatiques
-- Séquence dédiée : agences immo, syndics, promoteurs
-- Contrat cadre avec tarifs préférentiels
-- Suivi relation partenaire
+### 3.6.5 Tests
+- `test_product.py` : CRUD produits, DevisLine, FactureLine
+- `test_devis_engine.py` : calculate() depuis base
+- `test_api_products.py` : Endpoints API
 
 ---
 
-## 🔵 PHASE 6 — Intelligence business
+## 🟡 PHASE 4 — Frontend avancé (DÉVELOPPEMENT)
 
-### 6.1 Tableau de bord exécutif
-- CA réel vs prévisionnel temps réel
-- Pipeline complet avec probabilités
-- Rapport Telegram chaque lundi matin
+### 4.1 Dashboard exécutif
+- **Graphiques temps réel** : CA, pipeline, conversions
+- **Widgets interactifs** : prospects chauds, actions du jour
+- **Statistiques visuelles** : taux de réponse, taux de conversion
+- **Timeline activité** : toutes les actions en temps réel
 
-### 6.2 Agent prévision CA
-- Prédit le CA du mois prochain
-- Si pipeline faible → intensifie prospection automatiquement
-- Prévision trésorerie 3 mois
+### 4.2 Gestion prospects avancée
+- **Filtres multiples** : score, zone, industrie, statut
+- **Vue Kanban** : pipeline visuel drag & drop
+- **Fiches enrichies** : historique complet, timeline interactions
+- **Actions rapides** : envoyer email, générer devis, changer statut
 
-### 6.3 Agent expansion automatique
-- CA stable 3 mois → propose d'élargir la zone
-- Analyse départements limitrophes
-- Lance prospection nouvelles zones
+### 4.3 Gestion clients
+- **CRUD complet** : création, modification, archivage
+- **Historique complet** : tous les chantiers, toutes les factures
+- **Dashboard client** : CA total, satisfaction, prochains passages
 
-### 6.4 Agent optimisation tarifaire
-- Analyse devis acceptés vs refusés
-- Identifie prix optimal par secteur
-- Met à jour devis_rules.json automatiquement
+### 4.4 Planning visuel
+- **Calendrier interactif** : vue jour/semaine/mois
+- **Chantiers** : création, modification, déplacement
+- **Optimisation trajets** : regrouper par zone
+- **Rappels automatiques** : 2h avant chaque chantier
 
-### 6.5 Agent recrutement
-- Charge > capacité → génère annonce Indeed/LinkedIn
-- Filtre candidatures automatiquement
-- Planifie entretiens dans l'agenda
-
-### 6.6 Analyse saisonnalité
-- BTP ralentit en hiver, accélère au printemps
-- Claude adapte les zones et les types de cibles selon la saison
-- Anticipation 6 semaines à l'avance
+### 4.5 Analytics & Reporting
+- **Tableaux de bord personnalisables**
+- **Exports CSV/PDF** : prospects, clients, chantiers, factures
+- **Rapports automatiques** : hebdo, mensuel, trimestriel
 
 ---
 
-## ⚫ PHASE 7 — Autonomie totale
+## 🟠 PHASE 5 — Gestion chantiers (LOGIQUE INTERNE)
 
-### 7.1 Auto-diagnostic
-- Vérifie chaque nuit que tous les agents tournent
-- Détecte anomalies (scraper bloqué, Gmail quota, Ollama down)
-- Tente correction automatique
-- Alerte Mohand seulement si ne peut pas corriger seul
+> **Développement de la logique complète, facturation simulée**
 
-### 7.2 Auto-amélioration
-- Compare performances semaine par semaine
-- Identifie ce qui fonctionne, arrête ce qui ne marche pas
-- Ajuste paramètres sans intervention
+### 5.1 Création & Planification
+- **Création chantier** depuis devis signé
+- **Planification automatique** : optimisation trajets
+- **Rappels Telegram** : 2h avant avec adresse + infos client
+- **Feuille d'intervention** PDF générée automatiquement
 
-### 7.3 Bilan annuel automatique
-- Prépare tous les éléments pour l'expert-comptable
-- Rapport annuel complet : CA, charges, résultat, dividendes
-- Propositions pour l'année suivante
+### 5.2 Suivi & Completion
+- **Statuts** : planifié → en_cours → terminé → facturé
+- **Photos avant/après** : upload depuis mobile
+- **Notes internes** : détails intervention
+- **Temps réel** : début/fin chantier avec horodatage
 
-### 7.4 Multi-entreprises
-- Même système pour une 2ème activité ou un associé
-- Dashboard unifié, agents séparés
+### 5.3 Facturation simulée
+- **Génération facture** PDF après chantier terminé
+- **Envoi automatique** email client avec PDF
+- **Suivi paiement** : en_attente → payée → en_retard
+- **Relances automatiques** : J+30, J+45, J+60 (simulation)
+
+### 5.4 Contrats récurrents
+- **Passages planifiés** automatiquement sur l'année
+- **Facturation mensuelle** automatique
+- **Renouvellement** : proposition 30j avant expiration
+
+### 5.5 Satisfaction client (simulation)
+- **Email satisfaction** J+2 après chantier
+- **Analyse sentiment** : positif/négatif/neutre
+- **Demande avis Google** si positif (J+5)
+- **Alerte Mohand** si négatif + proposition geste commercial
 
 ---
 
-## 📋 Checklist avant ouverture
+## 🔵 PHASE 6 — Devis avancés & Templates
 
-- [ ] Finir Phase 2 (DVF + Score enrichi)
-- [ ] Construire Claude l'associée IA (Phase 3)
-- [ ] Créer la SAS Proprexis (Legalstart ~300€)
-- [ ] Ouvrir compte Qonto professionnel
-- [ ] Remplir devis_rules.json avec SIREN, SIRET, TVA, IBAN Qonto
-- [ ] Prendre un expert-comptable
-- [ ] Créer Google My Business
-- [ ] Acheter domaine proprexis.fr
-- [ ] Souscrire assurance RC Pro
-- [ ] Lancer la prospection automatique
+### 6.1 Templates personnalisables
+- **Par secteur** : BTP, immobilier, bureaux, hôtels
+- **Par type** : fin de chantier, entretien, vitrerie
+- **Variables dynamiques** : nom client, surface, tarif
+- **Prévisualisation** temps réel
+
+### 6.2 Personnalisation poussée
+- **Logo** uploadable
+- **CGV** personnalisées par type de client
+- **Conditions paiement** : comptant, 30j, 60j
+- **Remises** : pourcentage ou montant fixe
+
+### 6.3 Historique & Analytics
+- **Tous les devis** générés
+- **Taux d'acceptation** par secteur/type/montant
+- **Analyse prix** : acceptés vs refusés
+- **Optimisation tarifaire** : suggestions automatiques
+
+### 6.4 Signature électronique (simulation)
+- **Interface signature** HTML5 Canvas
+- **Stockage signature** en base
+- **PDF signé** généré automatiquement
+- **Email confirmation** client
+
+---
+
+## 🟣 PHASE 7 — Tests & Optimisations
+
+### 7.1 Tests automatisés complets
+- **Tests unitaires** : tous les agents
+- **Tests intégration** : workflows complets
+- **Tests E2E** : frontend + backend
+- **Coverage** : >80% sur tout le code
+
+### 7.2 Performance
+- **Optimisation requêtes** PostgreSQL (indexes, EXPLAIN)
+- **Cache** Redis pour données fréquentes
+- **Pagination** sur toutes les listes
+- **Lazy loading** composants frontend
+
+### 7.3 UX/UI Polish
+- **Loading states** partout
+- **Error handling** user-friendly
+- **Animations** fluides
+- **Responsive** mobile/tablet
+- **Accessibilité** WCAG 2.1
+
+### 7.4 Sécurité
+- **Rate limiting** sur toutes les APIs
+- **Validation** stricte inputs
+- **Sanitization** XSS/SQL injection
+- **HTTPS** enforced
+- **Secrets** management (.env sécurisé)
+
+### 7.5 Monitoring
+- **Logs structurés** tous les agents
+- **Health checks** endpoints
+- **Alertes** Telegram si erreur critique
+- **Dashboard monitoring** : uptime, latence, erreurs
+
+---
+
+## 🌐 PHASE 8 — Site vitrine (PRÉPARATION)
+
+### 8.1 Site proprexis.fr
+- **Design pro** Next.js + Tailwind
+- **Pages** : accueil, services, zones, contact, devis
+- **Formulaire devis** → CRM automatique
+- **Chat Claude 24h/24** pour qualifier visiteurs
+
+### 8.2 SEO on-page
+- **Pages par ville** générées automatiquement
+- **Contenu optimisé** par secteur
+- **Meta tags** dynamiques
+- **Sitemap** XML auto-généré
+- **Schema.org** structured data
+
+### 8.3 Préparation GMB
+- **Fiche Google My Business** préparée
+- **Photos** chantiers (banque d'images)
+- **Description** optimisée SEO local
+- **Catégories** : nettoyage professionnel, fin de chantier
+
+---
+
+# 🔴 PRODUCTION — Phases nécessitant société ouverte
+
+> **Ces phases NE PEUVENT PAS être développées avant création SAS**
+
+---
+
+## ⚫ PHASE 9 — Création société + Facturation légale
+
+### 9.1 Création SAS Proprexis
+- [ ] **Legalstart** ou équivalent (~300€)
+- [ ] Obtenir **SIRET** + **SIREN**
+- [ ] **Immatriculation** INSEE
+- [ ] **TVA** : demande numéro intracommunautaire
+- [ ] **Assurance RC Pro** obligatoire
+
+### 9.2 Compte bancaire Qonto
+- [ ] **Ouvrir compte** pro Qonto
+- [ ] **IBAN** + **BIC** obtenus
+- [ ] **Carte bancaire** pro
+- [ ] **API Qonto** : obtenir clés production
+
+### 9.3 Facturation légale réelle
+- [ ] **Remplir devis_rules.json** avec vraies infos (SIRET, IBAN, TVA)
+- [ ] **Numérotation légale** factures (FAC-2026-001)
+- [ ] **Mentions obligatoires** sur factures
+- [ ] **Archivage légal** 10 ans
+
+### 9.4 Intégration Qonto API (RÉELLE)
+- [ ] **Lecture solde** temps réel
+- [ ] **Récupération mouvements** quotidiens
+- [ ] **Rapprochement automatique** factures/virements
+- [ ] **Alertes** paiements reçus/anomalies
+
+---
+
+## ⚫ PHASE 10 — Comptabilité & TVA SAS
+
+### 10.1 Expert-comptable
+- [ ] Trouver **expert-comptable** SAS
+- [ ] **Export automatique** mensuel pour EC
+- [ ] **Préparation documents** : factures émises/reçues + Qonto
+
+### 10.2 TVA réelle
+- [ ] **Calcul TVA collectée** (factures émises)
+- [ ] **Calcul TVA déductible** (achats, charges)
+- [ ] **Solde TVA** à payer chaque mois
+- [ ] **Déclaration CA3** automatique (validation Mohand)
+- [ ] **Alerte seuil TVA** : passage franchise → régime réel
+
+### 10.3 Prévision trésorerie réelle
+- [ ] **Projection 30/60/90 jours** avec données Qonto
+- [ ] **Croisement** : devis signés + factures attente + charges fixes
+- [ ] **Alerte trésorerie négative** prévisionnelle
+- [ ] **Recommandations** : accélérer encaissements ou réduire charges
+
+### 10.4 Tableau de bord financier
+- [ ] **CA réel vs objectif** temps réel
+- [ ] **Marge par chantier**
+- [ ] **Délai moyen paiement** clients
+- [ ] **Charges fixes/variables**
+- [ ] **Seuil rentabilité** mensuel
+
+### 10.5 Dividendes & Rémunération
+- [ ] **Calcul résultat** disponible pour dividendes
+- [ ] **Optimisation fiscale** : salaire président vs dividendes
+- [ ] **Alerte** si résultat insuffisant
+
+---
+
+## ⚫ PHASE 11 — Appels d'offres publics
+
+### 11.1 Scraping marchés publics
+- [ ] **Scraper** marchés-publics.gouv.fr
+- [ ] **Filtres** : nettoyage + IDF + <40k€ (seuil sans publicité)
+- [ ] **Alerte Telegram** nouveaux marchés
+- [ ] **Deadline tracking** date limite dépôt
+
+### 11.2 Préparation dossiers
+- [ ] **Templates dossiers** : DC1, DC2, ATTRI
+- [ ] **Génération automatique** depuis infos société
+- [ ] **Upload documents** : Kbis, RC Pro, relevé Qonto
+- [ ] **Soumission** : préparation complète, validation Mohand
+
+### 11.3 Suivi marchés
+- [ ] **Pipeline marchés** : soumis → attente → gagné/perdu
+- [ ] **Taux de succès** par type de marché
+- [ ] **Analyse** : pourquoi gagné/perdu
+
+---
+
+## ⚫ PHASE 12 — Expansion & Intelligence business
+
+### 12.1 Agent prévision CA
+- [ ] **Prédit CA** mois prochain
+- [ ] **Pipeline faible** → intensifie prospection auto
+- [ ] **Prévision trésorerie** 3 mois avec Qonto
+
+### 12.2 Agent expansion automatique
+- [ ] **CA stable 3 mois** → propose élargir zone
+- [ ] **Analyse départements** limitrophes
+- [ ] **Lance prospection** nouvelles zones automatiquement
+
+### 12.3 Agent optimisation tarifaire
+- [ ] **Analyse devis** acceptés vs refusés
+- [ ] **Prix optimal** par secteur
+- [ ] **Ajuste devis_rules.json** automatiquement
+
+### 12.4 Agent recrutement
+- [ ] **Charge > capacité** → génère annonce Indeed/LinkedIn
+- [ ] **Filtre candidatures** automatiquement
+- [ ] **Planifie entretiens** dans agenda
+
+### 12.5 Agent veille marché
+- [ ] **Surveille prix** concurrents Pages Jaunes/Google
+- [ ] **Détecte nouveaux** concurrents zone
+- [ ] **Benchmark tarifaire** mensuel
+
+### 12.6 Analyse saisonnalité
+- [ ] **BTP ralentit hiver**, accélère printemps
+- [ ] **Claude adapte** zones et types cibles selon saison
+- [ ] **Anticipation** 6 semaines à l'avance
+
+---
+
+## ⚫ PHASE 13 — Autonomie totale
+
+### 13.1 Auto-diagnostic
+- [ ] **Vérifie chaque nuit** : tous les agents tournent
+- [ ] **Détecte anomalies** : scraper bloqué, Gmail quota, API down
+- [ ] **Correction automatique** si possible
+- [ ] **Alerte Mohand** seulement si échec correction
+
+### 13.2 Auto-amélioration
+- [ ] **Compare performances** semaine par semaine
+- [ ] **Identifie** ce qui fonctionne, arrête ce qui échoue
+- [ ] **Ajuste paramètres** sans intervention
+
+### 13.3 Bilan annuel automatique
+- [ ] **Prépare éléments** pour expert-comptable
+- [ ] **Rapport annuel** : CA, charges, résultat, dividendes
+- [ ] **Propositions** pour l'année suivante
+
+### 13.4 Multi-entreprises
+- [ ] **Même système** pour 2ème activité ou associé
+- [ ] **Dashboard unifié**, agents séparés
+- [ ] **Isolation données** par entreprise
+
+---
+
+## 📋 Checklist avant ouverture société
+
+### Développement à terminer
+- [ ] **Phase 4** : Frontend avancé complet
+- [ ] **Phase 5** : Gestion chantiers (logique complète)
+- [ ] **Phase 6** : Devis avancés & templates
+- [ ] **Phase 7** : Tests & optimisations (>80% coverage)
+- [ ] **Phase 8** : Site vitrine prêt (pas encore publié)
+
+### Création société
+- [ ] **Créer SAS** Proprexis (Legalstart ~300€)
+- [ ] **Ouvrir Qonto** professionnel
+- [ ] **Obtenir SIRET**, SIREN, TVA
+- [ ] **Remplir devis_rules.json** avec vraies infos
+- [ ] **Prendre expert-comptable**
+- [ ] **Souscrire RC Pro** obligatoire
+
+### Lancement
+- [ ] **Publier site** proprexis.fr
+- [ ] **Créer GMB** (Google My Business)
+- [ ] **Lancer prospection** automatique
+- [ ] **Premier client** : test complet du flux
 
 ---
 
@@ -442,10 +598,9 @@ SOURCES PROSPECTS
 Pages Jaunes + Permis construire + DVF
 + Appels d'offres + Site vitrine + Bouche à oreille
               ↓
-    Score enrichi (Pappers + signaux)
+    Score enrichi 300pts (Pappers + signaux)
               ↓
-  Email IA personnalisé (templates Phase 1
-  → génération IA Phase 3)
+  Email IA personnalisé (templates + génération IA)
               ↓
   Qualification IA — dialogue multi-échanges
               ↓
@@ -455,7 +610,7 @@ Pages Jaunes + Permis construire + DVF
               ↓
   Mohand réalise le chantier
               ↓
-  Facture auto → Stripe → Rapprochement Qonto
+  Facture auto → Qonto → Rapprochement
               ↓
   Satisfaction → Avis Google → SEO → Entrants
               ↓
@@ -476,16 +631,17 @@ Pages Jaunes + Permis construire + DVF
 
 | Décision | Raison |
 |----------|--------|
+| **Développement AVANT création société** | Système parfait dès le 1er client |
 | SAS au lieu d'auto-entrepreneur | Meilleure structure pour croître |
 | Qonto comme banque pro | API disponible pour intégration totale |
-| Claude API pour l'associée IA | Meilleur raisonnement, indispensable pour ce rôle |
-| Mistral local en dev, Mistral 7B en prod | Qualité vs coût selon l'usage |
+| Groq API (gratuit) pour Claude | llama-3.3-70b excellent et gratuit |
+| Ollama phi3:mini pour qualification | Coût zéro en dev |
+| Telegram polling (pas webhook) | Fonctionne en local sans HTTPS |
 | Pas de Google Maps | Trop complexe, valeur limitée |
 | Pas de Societe.com | Doublon Pappers |
-| Pas de service email payant | Gratuit tant que possible |
-| Permis construire = pipeline froid | Pas d'email trouvable facilement |
-| Associé IA après Phase 2 | Besoin de données réelles pour être utile |
-| Ouvrir après fin du dev | Système parfait dès le 1er client |
+| Score 300pts normalisé /100 | Précision max, compatibilité schéma |
+| Tests complets (28 tests) | Qualité garantie avant prod |
+| **Phases 9-13 APRÈS création SAS** | Impossible sans SIRET/Qonto |
 
 ---
 

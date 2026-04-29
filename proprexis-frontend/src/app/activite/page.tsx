@@ -68,7 +68,7 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string | 
   return (
     <div style={{ padding: '16px 20px', borderRadius: 10, background: `${color}08`, border: `1px solid ${color}20`, flex: 1 }}>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
@@ -189,7 +189,7 @@ export default function ActivitePage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, margin: 0 }}>Journal d'activité</h1>
+          <h1 style={{ fontFamily: 'DM Sans', fontSize: 28, fontWeight: 800, margin: 0 }}>Journal d'activité</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 6, fontSize: 13 }}>
             {total} événements · mis à jour en temps réel
           </p>
@@ -238,7 +238,7 @@ export default function ActivitePage() {
             { label: 'erreurs', value: today.erreurs, color: '#ef4444' },
           ].map(({ label, value, color }) => value > 0 && (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 18, color }}>{value}</span>
+              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 18, color }}>{value}</span>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
             </div>
           ))}

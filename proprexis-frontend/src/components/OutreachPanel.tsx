@@ -61,7 +61,7 @@ export function OutreachPanel() {
             <Mail size={14} color={actif ? '#3b82f6' : 'var(--text-muted)'} />
           </div>
           <div>
-            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13 }}>
+            <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13 }}>
               Prospection automatique
               <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 7px', borderRadius: 10, background: actif ? '#3b82f618' : 'var(--border)', color: actif ? '#3b82f6' : 'var(--text-muted)', fontWeight: 600 }}>
                 {actif ? '● Actif' : '○ Hors fenêtre'}
@@ -97,7 +97,7 @@ export function OutreachPanel() {
                   <Icon size={12} color={color} />
                   <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
                 </div>
-                <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 700, color }}>{value}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 22, fontWeight: 700, color }}>{value}</div>
               </div>
             ))}
           </div>
