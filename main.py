@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.database import Base, engine
 from app.models import prospect, client, devis, chantier, facture, email_log, conversation, activity_log, ai_memory, tenant, product
-from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler, api_watchdog, api_outreach, api_devis_rules, api_pappers, api_activity, api_permis, api_email_finder, api_dvf, api_claude, api_products
+from app.api import api_chantier, api_clients, api_devis, api_prospects, api_factures, api_scraping, api_scheduler, api_watchdog, api_outreach, api_devis_rules, api_pappers, api_activity, api_permis, api_email_finder, api_dvf, api_claude, api_products, api_tenants
 from app.scheduler import start_scheduler, stop_scheduler
 from app.agents.telegram_polling import start_polling, stop_polling
 
@@ -50,6 +50,7 @@ app.include_router(api_dvf.router,           prefix="/api")
 app.include_router(api_email_finder.router,  prefix="/api")
 app.include_router(api_claude.router,        prefix="/api")
 app.include_router(api_products.router)
+app.include_router(api_tenants.router)
 
 
 @app.get("/")
