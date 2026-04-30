@@ -195,10 +195,137 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
+## ✅ PHASE 4 — Dashboard Monitoring (COMPLÉTÉ)
+
+### 4.1 Produits en base (migration)
+- ✅ Migration devis_rules.json → PostgreSQL
+- ✅ Table `products` multi-tenant
+- ✅ 10 produits migrés : bureaux, fin_chantier, copropriete, vitrerie...
+- ✅ API CRUD : `/api/products` (list, get, create, update, delete)
+- ✅ API société : `/api/tenants/owner/config`
+
+### 4.2 Dashboard monitoring
+- ✅ Page dashboard moderne : Monitoring read-only (5-10min/jour)
+- ✅ KPIs quotidiens : emails envoyés, devis générés, montant TTC, réponses
+- ✅ Pipeline 5 étapes : Nouveaux → Contactés → Répondus → Devis → Gagnés
+- ✅ Top prospects score >80
+- ✅ Timeline activité temps réel
+- ✅ API `/api/dashboard/stats`, `/api/dashboard/pipeline-chart`
+
+### 4.3 Graphiques & Planning
+- ✅ Composant `PipelineChart.tsx` : évolution 7 jours (Recharts)
+- ✅ Page `/planning` : visualisation chantiers par statut
+- ✅ Données temps réel depuis ActivityLog
+
+### 4.4 Design moderne professionnel
+- ✅ Thème clair : Fond #f0f2f5, cartes blanches avec ombres
+- ✅ Sidebar : Bleu marine #0f1e3d, texte blanc
+- ✅ Accent : Orange #f5a623 (états actifs)
+- ✅ Typographie standardisée : DM Sans partout, Syne uniquement logo
+- ✅ Formatage français : `toLocaleString('fr-FR')`, espace avant €
+- ✅ Cartes sans bordures (box-shadow uniquement)
+- ✅ Design cohérent sur toute l'application frontend
 
 ---
 
-## 🔷 PHASE 3.5 — Multi-tenant (FONDATIONS)
+## ✅ PHASE 5 — Chantiers Autonomes + Escalations + Optimisations (COMPLÉTÉ)
+
+### 5.1 Chantiers autonomes (backend)
+- ✅ **Modèle Escalation** : Validation humaine avec IA recommendation
+- ✅ **Agent chantier_auto.py** (374 lignes) :
+  - `process_accepted_devis()` : Auto ou escalade selon seuil
+  - `auto_create_chantier_from_devis()` : Planification J+7
+  - `check_devis_need_escalation()` : Validation 10k€ HT (configurable)
+  - `run_chantier_auto_check()` : Job quotidien 8h30
+- ✅ **Seuils configurables** : devis_auto_threshold_ht, discount_auto_max_pct
+- ✅ **API /api/escalations** : 6 endpoints (liste, stats, décision, config)
+
+### 5.2 Dashboard escalations + Config autonomie (frontend)
+- ✅ **Page /escalations** :
+  - 4 stats cards cliquables (pending/approved/rejected/auto_resolved)
+  - EscalationCard : Approve/Reject 1-clic, IA recommendation
+  - Auto-resolve countdown, note décision
+  - Vue read-only décisions passées
+- ✅ **Page /parametres section "Autonomie Claude"** :
+  - Seuil devis auto (€ HT) : Input modifiable
+  - Remise max auto (%) : Input modifiable
+  - 3 toggles : planning auto, notifications, escalade conflits
+  - Save orange (accent color)
+
+### 5.3 Optimisations IA avancées
+- ✅ **Enhanced claude_optimizer.py** :
+  - `analyze_lost_prospects()` : Patterns échecs (industrie, score)
+  - `adjust_scoring_weights()` : Corrélations email/web/phone
+  - `track_ab_test_results()` : Suivi variants + winner
+  - `run_optimization_cycle()` : 4 analyses + auto-apply high-priority
+- ✅ **API /api/optimizations** : 8 endpoints
+  - GET /suggestions, /email-performance, /lost-prospects
+  - GET /scoring-adjustments, /ab-test, /learnings, /strategy
+  - POST /run-cycle
+- ✅ **Page /optimizations** :
+  - Stratégie actuelle (top industrie/ville, A/B test)
+  - Performance emails (7j, taux réponse color-coded)
+  - Prospects perdus (30j, patterns)
+  - Suggestions prioritaires (high/medium/low)
+  - Bouton "Lancer cycle" avec loading
+
+### 5.4 Tests Phase 5 (45+ tests)
+- ✅ **test_phase5_escalations.py** (12 tests) :
+  - Config autonomie (get_autonomy_config)
+  - Vérification seuils devis (sous/au-dessus)
+  - Vérification remises (auto/escalation)
+  - Création escalations avec confiance IA
+  - Auto-resolve timing
+  - Seuils configurables
+- ✅ **test_phase5_optimizations.py** (18 tests) :
+  - Performance emails (7j, taux réponse, meilleur jour)
+  - Lost prospects (total, score moyen, industries)
+  - Scoring adjustments (corrélations conversion)
+  - A/B testing (variants, winner)
+  - Cycle optimisation complet
+  - Recommendations
+- ✅ **test_phase5_chantier_auto.py** (15 tests) :
+  - Process devis accepté (auto vs escalation)
+  - Création chantier autonome
+  - Planning automatique (date début, récurrence)
+  - Détection conflits planning
+  - Notifications client
+  - Workflow complet
+
+**Lancer** : `pytest tests/test_phase5_*.py -v`
+
+### 5.5 Documentation complète
+- ✅ **PHASE5_API.md** (450 lignes) :
+  - Endpoints Escalations (6 endpoints)
+  - Endpoints Optimizations (8 endpoints)
+  - Configuration seuils
+  - Exemples requêtes/réponses JSON
+- ✅ **PHASE5_USER_GUIDE.md** (600 lignes) :
+  - Interface Escalations (workflow complet)
+  - Dashboard Optimisations (4 sections)
+  - Configuration autonomie (paramètres)
+  - Bonnes pratiques
+  - Troubleshooting
+- ✅ **PHASE5_ARCHITECTURE.md** (650 lignes) :
+  - Structure fichiers
+  - Flux décision autonome
+  - Modèle de données
+  - Système de confiance IA
+  - Métriques & monitoring
+- ✅ **docs/README.md** : Index général documentation
+
+### 5.6 Dashboard v2 → v1
+- ✅ Dashboard moderne remplace ancien dashboard
+- ✅ 4 stats cards, pipeline, graphique, top prospects, timeline
+
+**Jobs scheduler** : 13 total (+1 chantier_auto_check 8h30)
+
+---
+
+
+---
+
+## 🔷 PHASE 3.5 — Multi-tenant (FONDATIONS) [Obsolète - intégré Phase 4]
 
 > **Préparer le système pour supporter plusieurs utilisateurs/entreprises**
 
@@ -226,7 +353,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🔶 PHASE 3.6 — Produits en base (REFACTORING)
+## 🔶 PHASE 3.6 — Produits en base (REFACTORING) [Obsolète - intégré Phase 4.1]
 
 > **Remplacer devis_rules.json par une table PostgreSQL**
 
@@ -263,7 +390,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🟡 PHASE 4 — Frontend avancé (DÉVELOPPEMENT)
+## 🟡 PHASE 6 — Devis avancés & Templates (À DÉVELOPPER)
 
 ### 4.1 Dashboard exécutif
 - **Graphiques temps réel** : CA, pipeline, conversions
@@ -295,7 +422,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🟠 PHASE 5 — Gestion chantiers (LOGIQUE INTERNE)
+## 🟠 PHASE 7 — Tests & Optimisations (À DÉVELOPPER)
 
 > **Développement de la logique complète, facturation simulée**
 
@@ -330,7 +457,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🔵 PHASE 6 — Devis avancés & Templates
+## 🔵 PHASE 8 — Site vitrine (PRÉPARATION)
 
 ### 6.1 Templates personnalisables
 - **Par secteur** : BTP, immobilier, bureaux, hôtels
@@ -358,7 +485,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🟣 PHASE 7 — Tests & Optimisations
+## PHASE 7 — Tests & Optimisations [Voir ci-dessus]
 
 ### 7.1 Tests automatisés complets
 - **Tests unitaires** : tous les agents
@@ -394,7 +521,7 @@ Un système entièrement autonome piloté par une IA associée qui prend des dé
 
 ---
 
-## 🌐 PHASE 8 — Site vitrine (PRÉPARATION)
+## PHASE 8 — Site vitrine [Voir ci-dessus]
 
 ### 8.1 Site proprexis.fr
 - **Design pro** Next.js + Tailwind
