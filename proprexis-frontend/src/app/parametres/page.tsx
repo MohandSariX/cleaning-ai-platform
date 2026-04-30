@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import {
   Save, RefreshCw, Loader2, Building2, Euro,
-  ChevronDown, ChevronUp, CheckCircle, AlertCircle, Monitor
+  ChevronDown, ChevronUp, CheckCircle, AlertCircle, Monitor, Zap
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -18,6 +18,14 @@ type Tarif = {
   id: number; name: string; description: string
   unit: string; unit_price_ht: number; minimum_ht: number | null
   category: string; active: boolean
+}
+
+type AutonomyConfig = {
+  devis_auto_threshold_ht: number
+  discount_auto_max_pct: number
+  chantier_auto_planning: boolean
+  chantier_notification_client: boolean
+  planning_conflict_escalate: boolean
 }
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
@@ -69,8 +77,10 @@ function Field({ label, value, onChange, placeholder, mono = false }: {
 export default function ParametresPage() {
   const [societe, setSociete] = useState<Societe | null>(null)
   const [tarifs, setTarifs] = useState<Tarif[]>([])
+  const [autonomyConfig, setAutonomyConfig] = useState<AutonomyConfig | null>(null)
   const [savingSociete, setSavingSociete] = useState(false)
   const [savingTarif, setSavingTarif] = useState<number | null>(null)
+  const [savingAutonomy, setSavingAutonomy] = useState(false)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [editedTarifs, setEditedTarifs] = useState<Record<number, Partial<Tarif>>>({})
   const [simulResult, setSimulResult] = useState<any>(null)
@@ -82,14 +92,17 @@ export default function ParametresPage() {
   }
 
   const load = async () => {
-    const [societeRes, productsRes] = await Promise.all([
+    const [societeRes, productsRes, autonomyRes] = await Promise.all([
       fetch(`${API}/api/tenants/owner/config`),
       fetch(`${API}/api/products`),
+      fetch(`${API}/api/escalations/config/autonomy`),
     ])
     const societeData = await societeRes.json()
     const productsData = await productsRes.json()
+    const autonomyData = await autonomyRes.json()
     setSociete(societeData)
     setTarifs(productsData)
+    setAutonomyConfig(autonomyData)
   }
 
   useEffect(() => { load() }, [])
@@ -128,6 +141,21 @@ export default function ParametresPage() {
       }
     } catch { showToast('Erreur', false) }
     setSavingTarif(null)
+  }
+
+  const saveAutonomy = async () => {
+    if (!autonomyConfig) return
+    setSavingAutonomy(true)
+    try {
+      const res = await fetch(`${API}/api/escalations/config/autonomy`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(autonomyConfig),
+      })
+      if (res.ok) showToast('Config autonomie sauvegardée ✓')
+      else showToast('Erreur lors de la sauvegarde', false)
+    } catch { showToast('Erreur réseau', false) }
+    setSavingAutonomy(false)
   }
 
   const simulate = async () => {
@@ -199,6 +227,112 @@ export default function ParametresPage() {
           <ThemeToggle />
         </div>
       </Section>
+
+      {/* Autonomie Claude */}
+      {autonomyConfig && (
+        <Section title="Autonomie Claude" icon={Zap} defaultOpen={false}>
+          <div style={{ paddingTop: 20 }}>
+            <div style={{ marginBottom: 24, padding: '12px 16px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4, fontWeight: 600 }}>
+                Seuils de décision automatique
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                Définit quand Claude peut agir seul ou doit escalader pour validation
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Seuil devis auto (€ HT)
+                </label>
+                <input
+                  type="number"
+                  value={autonomyConfig.devis_auto_threshold_ht}
+                  onChange={e => setAutonomyConfig(c => c && ({ ...c, devis_auto_threshold_ht: parseFloat(e.target.value) }))}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 7,
+                    border: '1px solid var(--border)', background: 'var(--surface)',
+                    color: 'var(--text)', fontSize: 14, boxSizing: 'border-box'
+                  }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Devis &lt; ce montant → création auto chantier
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Remise max auto (%)
+                </label>
+                <input
+                  type="number"
+                  value={autonomyConfig.discount_auto_max_pct}
+                  onChange={e => setAutonomyConfig(c => c && ({ ...c, discount_auto_max_pct: parseFloat(e.target.value) }))}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 7,
+                    border: '1px solid var(--border)', background: 'var(--surface)',
+                    color: 'var(--text)', fontSize: 14, boxSizing: 'border-box'
+                  }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Remise &lt; ce % → négociation auto
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={autonomyConfig.chantier_auto_planning}
+                  onChange={e => setAutonomyConfig(c => c && ({ ...c, chantier_auto_planning: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>Planification automatique chantiers</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Claude planifie les dates et horaires automatiquement</div>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={autonomyConfig.chantier_notification_client}
+                  onChange={e => setAutonomyConfig(c => c && ({ ...c, chantier_notification_client: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>Notifications clients automatiques</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Envoyer email de confirmation au client</div>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={autonomyConfig.planning_conflict_escalate}
+                  onChange={e => setAutonomyConfig(c => c && ({ ...c, planning_conflict_escalate: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>Escalader conflits planning</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Demander validation si chevauchement détecté</div>
+                </div>
+              </label>
+            </div>
+
+            <button onClick={saveAutonomy} disabled={savingAutonomy} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px',
+              borderRadius: 8, border: 'none', background: '#f5a623', color: 'white',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 20
+            }}>
+              {savingAutonomy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              Sauvegarder config autonomie
+            </button>
+          </div>
+        </Section>
+      )}
 
       {/* Tarifs */}
       <Section title="Grille tarifaire" icon={Euro}>

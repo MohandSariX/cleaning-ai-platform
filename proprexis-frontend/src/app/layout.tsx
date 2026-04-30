@@ -5,20 +5,22 @@ import { usePathname } from 'next/navigation'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   LayoutDashboard, Users, UserCheck,
-  FileText, Briefcase, Calendar, CreditCard, Settings, Activity
+  FileText, Briefcase, Calendar, CreditCard, Settings, Activity, AlertTriangle, Zap
 } from 'lucide-react'
 import clsx from 'clsx'
 
 const nav = [
-  { href: '/',            label: 'Dashboard',   icon: LayoutDashboard },
-  { href: '/prospects',   label: 'Prospects',   icon: Users },
-  { href: '/clients',     label: 'Clients',     icon: UserCheck },
-  { href: '/devis',       label: 'Devis',       icon: FileText },
-  { href: '/chantiers',   label: 'Chantiers',   icon: Briefcase },
-  { href: '/planning',    label: 'Planning',    icon: Calendar },
-  { href: '/facturation', label: 'Facturation', icon: CreditCard },
-  { href: '/activite',    label: 'Activité',    icon: Activity },
-  { href: '/parametres',  label: 'Paramètres',  icon: Settings },
+  { href: '/',              label: 'Dashboard',     icon: LayoutDashboard },
+  { href: '/prospects',     label: 'Prospects',     icon: Users },
+  { href: '/clients',       label: 'Clients',       icon: UserCheck },
+  { href: '/devis',         label: 'Devis',         icon: FileText },
+  { href: '/chantiers',     label: 'Chantiers',     icon: Briefcase },
+  { href: '/planning',      label: 'Planning',      icon: Calendar },
+  { href: '/escalations',   label: 'Escalations',   icon: AlertTriangle },
+  { href: '/optimizations', label: 'Optimisations', icon: Zap },
+  { href: '/facturation',   label: 'Facturation',   icon: CreditCard },
+  { href: '/activite',      label: 'Activité',      icon: Activity },
+  { href: '/parametres',    label: 'Paramètres',    icon: Settings },
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

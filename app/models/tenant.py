@@ -31,6 +31,7 @@ class Tenant(Base):
     # Relations
     config = relationship("TenantConfig", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
     subscription = relationship("TenantSubscription", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
+    escalations = relationship("Escalation", back_populates="tenant", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Tenant {self.name} ({self.plan})>"

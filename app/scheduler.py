@@ -30,6 +30,7 @@ from app.agents.telegram_notifier import send_message
 from app.agents.activity_logger import log_claude_briefing
 from app.agents.claude_optimizer import run_optimization_cycle
 from app.agents.activity_logger import log_scraping, log_scheduler_job, log_system
+from app.agents.chantier_auto import run_chantier_auto_check
 import logging
 
 logger = logging.getLogger("proprexis.scheduler")
@@ -369,6 +370,14 @@ def start_scheduler():
         run_optimization_cycle,
         trigger=CronTrigger(hour=20, minute=0, timezone="Europe/Paris"),
         id="claude_optimizer_daily",
+        replace_existing=True,
+    )
+
+    # Job 13 — Chantiers automatiques quotidien à 8h30
+    _scheduler.add_job(
+        run_chantier_auto_check,
+        trigger=CronTrigger(hour=8, minute=30, timezone="Europe/Paris"),
+        id="chantier_auto_check",
         replace_existing=True,
     )
 
