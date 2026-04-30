@@ -45,6 +45,11 @@ class Devis(Base):
 
     notes        = Column(Text)
 
+    # Signature électronique (Phase 6.4)
+    signature_data = Column(Text, nullable=True)  # Base64 canvas signature
+    signed_at = Column(DateTime, nullable=True)
+    signed_by = Column(String, nullable=True)  # Nom du signataire
+
     # Timestamps
     created_at   = Column(DateTime, server_default=func.now())
     updated_at   = Column(DateTime, onupdate=func.now())

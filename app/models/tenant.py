@@ -67,6 +67,12 @@ class TenantConfig(Base):
     pappers_api_key = Column(String)
     groq_api_key = Column(String)
 
+    # Personnalisation devis (Phase 6.2)
+    logo_url = Column(String, nullable=True)  # URL du logo uploadé
+    cgv_text = Column(String, nullable=True)  # CGV personnalisées
+    conditions_paiement = Column(String, default="Comptant")  # Comptant, 30j, 60j, 90j
+    remise_max_pct = Column(Float, default=15.0)  # Remise max autorisée (%)
+
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 

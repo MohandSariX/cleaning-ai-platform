@@ -321,6 +321,37 @@ def devis_analytics_top_clients(db: Session = Depends(get_db), limit: int = 10):
     return result[:limit]
 
 
+# ── Signature électronique ──────────────────────────────────
+
+@router.post("/devis/{devis_id}/sign")
+def sign_devis(devis_id: int, data: dict, db: Session = Depends(get_db)):
+    """Signe un devis avec signature électronique.
+
+    Body: {
+        "signature_data": "data:image/png;base64,...",
+        "signed_by": "Jean Dupont"
+    }
+    """
+    d = db.query(Devis).filter(Devis.id == devis_id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Devis introuvable")
+
+    d.signature_data = data.get("signature_data")
+    d.signed_by = data.get("signed_by")
+    d.signed_at = datetime.now()
+    d.status = "accepte"
+    d.responded_at = datetime.now()
+
+    db.commit()
+
+    return {
+        "status": "signed",
+        "devis_id": d.id,
+        "signed_at": d.signed_at.isoformat(),
+        "signed_by": d.signed_by
+    }
+
+
 # ── Export PDF ──────────────────────────────────────────────
 
 from fastapi.responses import StreamingResponse
