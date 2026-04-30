@@ -56,7 +56,12 @@ cleaning-ai-platform/
 │   │   ├── api_permis.py            ← POST permis/scrape, scrape-sync
 │   │   ├── api_email_finder.py      ← POST email-finder/prospect/{id}, batch-sync
 │   │   ├── api_dvf.py               ← POST dvf/scrape, scrape-sync
-│   │   └── api_claude.py            ← POST webhook/telegram (Groq API conversation)
+│   │   ├── api_claude.py            ← POST webhook/telegram (Groq API conversation)
+│   │   ├── api_escalations.py       ← Escalations (liste, stats, décision, config autonomie)
+│   │   ├── api_optimizations.py     ← Optimisations IA (suggestions, performance, learnings)
+│   │   ├── api_dashboard.py         ← Dashboard stats + pipeline chart
+│   │   ├── api_products.py          ← CRUD produits multi-tenant
+│   │   └── api_tenants.py           ← Config tenant owner
 │   │
 │   ├── agents/                      ← Agents autonomes
 │   │   ├── lead_scraper.py          ← Orchestrateur scraping Pages Jaunes
@@ -82,7 +87,8 @@ cleaning-ai-platform/
 │   │   ├── claude_tools.py          ← 6 tools CRM pour function calling
 │   │   ├── claude_autonomy.py       ← Règles autonomie + escalation
 │   │   ├── claude_assistant.py      ← Briefings + rapports + stats
-│   │   └── claude_optimizer.py      ← Optimisation continue + A/B testing
+│   │   ├── claude_optimizer.py      ← Optimisation continue + A/B testing
+│   │   └── chantier_auto.py         ← Gestion autonome chantiers + escalations
 │   │
 │   ├── utils/
 │   │   ├── pdf_generator.py         ← ReportLab PDF devis
@@ -135,6 +141,9 @@ activity_logs        -- Journal d'activité complet de tous les agents
 ai_memory            -- Mémoire persistante Claude (key/value + context)
 ai_decisions         -- Décisions autonomes Claude (type, data, reasoning, escalated)
 conversation_history -- Historique conversations Telegram Claude
+escalations          -- Escalations (validation humaine pour décisions importantes)
+products             -- Produits/services multi-tenant (remplace devis_rules.json)
+tenants              -- Configuration multi-tenant
 ```
 
 ### Statuts prospect
@@ -163,7 +172,7 @@ TELEGRAM_CHAT_ID=xxx          ← ID chat Mohand pour notifications
 Contient : tarifs, TVA, validité devis, questions qualification par type, infos société
 NE JAMAIS coder les tarifs ou infos société en dur dans le code — toujours lire depuis ce fichier.
 
-### Scheduler — 12 jobs actifs
+### Scheduler — 13 jobs actifs
 | Job ID | Déclencheur | Fonction |
 |--------|-------------|----------|
 | nightly_scrape | Chaque nuit 23h | run_nightly_scrape() |
@@ -178,6 +187,7 @@ NE JAMAIS coder les tarifs ou infos société en dur dans le code — toujours l
 | claude_briefing | Chaque jour 8h | send_daily_briefing() |
 | claude_report | Lundi 9h | send_weekly_report() |
 | claude_optimize | Chaque jour 20h | run_optimization_cycle() |
+| chantier_auto_check | Chaque jour 8h30 | run_chantier_auto_check() |
 
 ---
 
@@ -286,16 +296,41 @@ curl -X POST http://localhost:8000/api/outreach/send-test
   - Briefings quotidiens (8h) + rapports hebdo (lundi 9h)
   - Optimisation continue (20h)
   - **Tests complets** : 28 tests (memory, tools, autonomy, assistant)
-
-### En cours — REFACTORING
-- 🔄 **Phase 3.5** : Multi-tenant (fondations)
-- 🔄 **Phase 3.6** : Produits en base (remplace devis_rules.json)
+- ✅ **Phase 4** : Dashboard monitoring
+  - 4.1 : Produits en base (multi-tenant, remplace devis_rules.json)
+  - 4.2 : Dashboard monitoring (stats quotidiennes, pipeline, KPIs)
+  - 4.3 : Graphiques évolution + Planning visuel
+  - 4.4 : Design moderne professionnel (DM Sans, thème clair/sombre)
+- ✅ **Phase 5** : Chantiers autonomes + Escalations + Optimisations IA
+  - 5.1 : **Chantiers autonomes** (backend)
+    - Agent chantier_auto.py (374 lignes)
+    - Création auto ou escalation selon seuil (10k€ HT configurable)
+    - Modèle Escalation avec IA recommendation + confiance
+    - API /api/escalations (6 endpoints)
+  - 5.2 : **Dashboard escalations** (frontend)
+    - Interface validation humaine 1-clic
+    - Auto-resolve countdown
+    - Configuration seuils autonomie (/parametres)
+  - 5.3 : **Optimisations IA avancées**
+    - analyze_lost_prospects() : patterns échecs
+    - adjust_scoring_weights() : corrélations conversion
+    - track_ab_test_results() : A/B testing automatique
+    - API /api/optimizations (8 endpoints)
+    - Dashboard /optimizations (stratégie, performance, suggestions)
+  - 5.4 : **Tests Phase 5** (45+ tests)
+    - test_phase5_escalations.py (12 tests)
+    - test_phase5_optimizations.py (18 tests)
+    - test_phase5_chantier_auto.py (15 tests)
+  - 5.5 : **Documentation complète**
+    - PHASE5_API.md (450 lignes)
+    - PHASE5_USER_GUIDE.md (600 lignes)
+    - PHASE5_ARCHITECTURE.md (650 lignes)
+    - docs/README.md (index général)
+  - 5.6 : Dashboard v2 → v1 (dashboard moderne par défaut)
 
 ### Prochaine phase — DÉVELOPPEMENT (société pas encore créée)
-- 🔜 **Phase 4** : Frontend avancé (dashboard exécutif, analytics, Kanban)
-- 🔜 **Phase 5** : Gestion chantiers (logique interne + facturation SIMULÉE)
 - 🔜 **Phase 6** : Devis avancés & templates personnalisables
-- 🔜 **Phase 7** : Tests & optimisations (>80% coverage)
+- 🔜 **Phase 7** : Tests & optimisations (>80% coverage global)
 - 🔜 **Phase 8** : Site vitrine proprexis.fr (préparation)
 
 ### Phases PRODUCTION — Nécessitent société ouverte (SIRET + Qonto)
