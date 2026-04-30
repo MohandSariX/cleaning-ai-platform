@@ -8,6 +8,13 @@ from dotenv import load_dotenv
 # Charger .env pour tests
 load_dotenv()
 
+# Importer tous les modèles pour SQLAlchemy
+from app.models import (
+    prospect, client, devis, chantier, facture,
+    email_log, conversation, activity_log, ai_memory,
+    tenant, product, escalation, devis_template
+)
+
 
 @pytest.fixture(scope="session")
 def db_session():
