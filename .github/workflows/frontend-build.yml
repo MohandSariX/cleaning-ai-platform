@@ -4,11 +4,11 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'frontend/**'
+      - 'proprexis-frontend/**'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'frontend/**'
+      - 'proprexis-frontend/**'
 
 jobs:
   build:
@@ -24,18 +24,18 @@ jobs:
         node-version: '20'
 
     - name: Install dependencies
-      working-directory: ./frontend
+      working-directory: ./proprexis-frontend
       run: npm ci
 
     - name: Build Next.js
-      working-directory: ./frontend
+      working-directory: ./proprexis-frontend
       run: npm run build
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: frontend-build
-        path: frontend/.next
+        path: proprexis-frontend/.next
         retention-days: 7
 
     - name: Build summary
