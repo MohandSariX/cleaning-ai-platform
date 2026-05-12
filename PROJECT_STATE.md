@@ -175,9 +175,9 @@ Stabiliser l’application avant création de la société et lancement réel.
 
 **Progress** :
 - ✅ Audit complet réalisé (structure, tests, git)
-- ✅ Tests stabilisés : 407 passing, 2 skipped, 0 failing
-- ✅ Coverage : 61% (2058/5263 lignes non couvertes)
-- ⏳ En cours : Atteindre 80% coverage
+- ✅ Tests stabilisés : 658 passing, 26 skipped, 0 failing
+- ✅ Coverage : 80% (1074/5263 lignes non couvertes) — OBJECTIF ATTEINT
+- ⏳ En cours : CI/CD & Documentation
 
 ---
 
@@ -187,7 +187,7 @@ Continuer Phase 7 :
 
 1. ✅ Audit complet projet
 2. ✅ Stabilisation tests (0 échec)
-3. ⏳ Coverage 61% → 80% (544 lignes à couvrir)
+3. ✅ Coverage 61% → 80% (580+ lignes couvertes)
 4. ⏳ CI/CD GitHub Actions
 5. ⏳ Performance & Sécurité
 6. ⏳ Documentation technique

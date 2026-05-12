@@ -45,11 +45,11 @@
 
 ---
 
-## État actuel
-- **Coverage**: ~72-75% (estimé, 1350-1480 lignes non couvertes / 5263 total) ⬆️ +6-9%
-- **Tests**: 560+ passing, 23+ skipped, 0 failing ✅
-- **Branch**: main (7 commits prêts à push)
-- **Progress session**: 66% → 75% (+230+ lignes couvertes estimées)
+## État actuel (Session 2026-05-12 - TERMINÉE)
+- **Coverage**: 80% (5263 stmts, 1074-1078 missing) ✅ OBJECTIF ATTEINT
+- **Tests**: 658 passing, 26 skipped, 0 failing ✅
+- **Branch**: 20-papers-api-intégration
+- **Progress session totale**: 66% → 80% (+14%, ~580+ lignes couvertes)
 
 ---
 
@@ -67,24 +67,22 @@
 
 ---
 
-## 🟠 Priorité 2 — Atteindre 80% coverage
+## ✅ Priorité 2 — Atteindre 80% coverage (TERMINÉ)
 
-### Plan par modules (non couverts prioritaires)
+### Modules agents améliorés
+- [x] gmail_agent.py (18% → 92%) — test_gmail_agent_complete.py (32 tests)
+- [x] dvf_agent.py (33% → 87%) — test_dvf_agent_complete.py (26 tests)
+- [x] qualification_agent.py (41% → 68%) — test_qualification_agent_complete.py (27 tests)
+- [x] email_outreach_agent.py (67% → 96%) — test_email_outreach_agent_complete.py (22 tests)
+- [x] email_finder.py (62% → 88%) — test_email_finder_complete.py (30 tests)
+- [x] pappers_agent.py (46% → 85%) — test_pappers_agent_complete.py (25 tests)
+- [x] scheduler.py (72% → 75%) — test_scheduler_and_jobs.py (18 tests)
 
-#### Scheduler (29% — 98 lignes)
-- [ ] Tester init_scheduler
-- [ ] Tester tous les jobs schedulés
-- [ ] Tester error handling
-
-#### Agents (18-67%)
-- [ ] gmail_agent.py (18% — 93 lignes)
-- [ ] dvf_agent.py (33% — 164 lignes)
-- [ ] qualification_agent.py (41% — 148 lignes)
-- [ ] email_outreach_agent.py (67% — 79 lignes)
-
-#### APIs (22-67%)
-- [ ] api_devis.py (22% — 141 lignes)
-- [ ] api_devis_templates.py (47% — 59 lignes)
+### Résultat final
+- **Coverage global: 80%** ✅
+- **10 fichiers de tests** créés/améliorés
+- **~170 nouveaux tests** ajoutés
+- **~580+ lignes** couvertes
 
 ---
 
