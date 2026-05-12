@@ -77,9 +77,14 @@ def create_escalation(
 
     log_claude_escalation(
         reason=title,
-        context={"escalation_id": escalation.id, "decision_type": decision_type, **(context_data or {})},
-        priority=priority,
-        details={"ia_recommendation": ia_recommendation, "ia_confidence": ia_confidence}
+        context={
+            "escalation_id": escalation.id,
+            "decision_type": decision_type,
+            "ia_recommendation": ia_recommendation,
+            "ia_confidence": ia_confidence,
+            **(context_data or {})
+        },
+        priority=priority
     )
 
     return escalation
@@ -119,14 +124,14 @@ def process_accepted_devis(db: Session, devis_id: int) -> dict:
             tenant_id=devis.tenant_id,
             decision_type="devis_high_value",
             title=f"Validation devis {devis.numero} — {devis.montant_ttc:.0f} € TTC",
-            description=f"Devis accepté par {devis.client_name}. {reason}",
+            description=f"Devis accepté par {devis.client.company_name}. {reason}",
             priority="high",
             devis_id=devis.id,
             amount_ht=devis.montant_ht,
             amount_ttc=devis.montant_ttc,
             context_data={
                 "devis_numero": devis.numero,
-                "client_name": devis.client_name,
+                "client_name": devis.client.company_name,
                 "service_type": devis.service_type,
                 "frequence": devis.frequence,
             },
@@ -165,7 +170,7 @@ def auto_create_chantier_from_devis(db: Session, devis: Devis, config: dict) -> 
         tenant_id=devis.tenant_id,
         client_id=devis.client_id,
         devis_id=devis.id,
-        titre=f"{devis.service_type.replace('_', ' ').title()} — {devis.client_name}",
+        titre=f"{devis.service_type.replace('_', ' ').title()} — {devis.client.company_name}",
         type=devis.service_type,
         adresse=None,  # TODO: récupérer depuis client
         ville=None,
@@ -182,7 +187,7 @@ def auto_create_chantier_from_devis(db: Session, devis: Devis, config: dict) -> 
     db.refresh(chantier)
 
     log_system(
-        message=f"Chantier #{chantier.id} créé automatiquement pour {devis.client_name}",
+        message=f"Chantier #{chantier.id} créé automatiquement pour {devis.client.company_name}",
         status="success",
         details={
             "auto_created": True,
@@ -197,8 +202,8 @@ def auto_create_chantier_from_devis(db: Session, devis: Devis, config: dict) -> 
         decision_type="chantier_auto_create",
         action_taken="approved",
         reasoning=f"Devis {devis.numero} accepté, montant {devis.montant_ht:.0f} € HT < seuil. Création auto chantier.",
-        confidence_score=95.0,
-        outcome="Chantier créé automatiquement",
+        autonomous=True,
+        escalated=False,
         details={
             "devis_id": devis.id,
             "chantier_id": chantier.id,
@@ -223,6 +228,43 @@ def estimate_duration(service_type: str, description: str = None) -> float:
         "autre": 4.0,
     }
     return base_durations.get(service_type, 4.0)
+
+
+def check_discount_need_escalation(discount_pct: float, config: dict) -> tuple[bool, str]:
+    """Vérifie si une remise nécessite une escalation"""
+    max_auto = config.get("discount_auto_max_pct", 15.0)
+
+    if discount_pct >= max_auto:
+        return True, f"Remise {discount_pct}% dépasse le seuil auto ({max_auto}%)"
+
+    return False, f"Remise {discount_pct}% dans les limites auto (<{max_auto}%)"
+
+
+def check_planning_conflicts(db: Session, proposed_date: datetime) -> bool:
+    """Vérifie si un chantier existe déjà à la date proposée"""
+    existing = db.query(Chantier).filter(
+        Chantier.date_debut == proposed_date.date(),
+        Chantier.status.in_(["planifie", "en_cours"])
+    ).first()
+
+    return existing is not None
+
+
+def notify_client_chantier(db: Session, chantier: Chantier) -> bool:
+    """Envoie une notification au client pour confirmer le chantier planifié"""
+    # TODO: Implémenter l'envoi réel d'email
+    # Pour l'instant, juste logger l'action
+    log_system(
+        message="Notification chantier envoyée au client",
+        status="success",
+        details={
+            "chantier_id": chantier.id,
+            "client_id": chantier.client_id,
+            "date_debut": chantier.date_debut.isoformat() if chantier.date_debut else None,
+            "simulated": True  # Simulation pour l'instant
+        }
+    )
+    return True
 
 
 def run_chantier_auto_check():
@@ -290,8 +332,8 @@ def process_escalation_decision(db: Session, escalation_id: int, decision: str, 
         decision_type=escalation.decision_type,
         action_taken=decision,
         reasoning=f"Décision humaine par {approved_by}: {decision}. Note: {note or 'N/A'}",
-        confidence_score=100.0,
-        outcome=f"Escalation {decision}",
+        autonomous=False,
+        escalated=False,
         details={
             "escalation_id": escalation.id,
             "decision_note": note,

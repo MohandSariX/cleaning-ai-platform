@@ -14,7 +14,7 @@ from app.agents.pappers_agent import enrich_prospect as pappers_enrich
 from app.agents.gmail_agent import send_email as gmail_send
 from app.agents.email_templates import get_template
 from app.utils.devis_engine import calculate as calculate_devis
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 
 logger = logging.getLogger("proprexis.claude_tools")
 
@@ -391,7 +391,6 @@ def get_crm_statistics(period: str = "week") -> Dict[str, Any]:
         }
 
         # Distribution par statut
-        from sqlalchemy import func
         status_dist = db.query(
             Prospect.status,
             func.count(Prospect.id)

@@ -93,7 +93,7 @@ def _chantier_to_dict(c: Chantier):
     return {
         "id": c.id,
         "client_id": c.client_id,
-        "client_name": c.client.company_name if c.client else None,
+        "client_nom": c.client.company_name if c.client else None,
         "devis_id": c.devis_id,
         "titre": c.titre,
         "type": c.type,
@@ -104,7 +104,7 @@ def _chantier_to_dict(c: Chantier):
         "date_fin": c.date_fin.isoformat() if c.date_fin else None,
         "heure_debut": c.heure_debut,
         "duree_heures": c.duree_heures,
-        "status": c.status,
+        "statut": c.status,
         "recurrence": c.recurrence,
         "notes": c.notes,
         "created_at": c.created_at.isoformat() if c.created_at else None,

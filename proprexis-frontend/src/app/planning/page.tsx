@@ -150,6 +150,24 @@ export default function PlanningPage() {
               {planifies.map(chantier => <ChantierCard key={chantier.id} chantier={chantier} />)}
             </div>
           )}
+
+          {enCours.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+                🔧 En cours ({enCours.length})
+              </h2>
+              {enCours.map(chantier => <ChantierCard key={chantier.id} chantier={chantier} />)}
+            </div>
+          )}
+
+          {termines.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+                ✅ Terminés ({termines.length})
+              </h2>
+              {termines.map(chantier => <ChantierCard key={chantier.id} chantier={chantier} />)}
+            </div>
+          )}
         </>
       )}
     </div>

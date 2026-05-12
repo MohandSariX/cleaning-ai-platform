@@ -46,7 +46,7 @@ def analyze_email_performance() -> Dict[str, Any]:
         ).count()
 
         # Taux de réponse
-        reply_rate = (replied / total_sent * 100) if total_sent > 0 else 0
+        reply_rate = (replied / total_sent * 100) if total_sent > 0 else 0.0
 
         # Performance par jour
         daily_perf = db.query(
@@ -279,7 +279,13 @@ def analyze_lost_prospects() -> Dict[str, Any]:
         ).all()
 
         if not lost:
-            return {"total": 0, "patterns": [], "recommendations": []}
+            return {
+                "total": 0,
+                "avg_score": 0.0,
+                "by_score_range": {"high": 0, "medium": 0, "low": 0},
+                "top_lost_industries": [],
+                "recommendations": []
+            }
 
         # Analyser patterns
         by_industry = {}
@@ -338,8 +344,8 @@ def analyze_lost_prospects() -> Dict[str, Any]:
         log_claude_learning(
             learning_type="lost_prospects_analysis",
             pattern=f"{len(lost)} perdus, avg score {avg_score:.1f}",
-            confidence_score=80.0,
-            details=analysis,
+            confidence=80.0,
+            sample_size=len(lost)
         )
 
         return analysis
@@ -414,8 +420,8 @@ def adjust_scoring_weights() -> Dict[str, Any]:
             log_claude_learning(
                 learning_type="scoring_weight_adjustment",
                 pattern=f"{len(adjustments)} ajustements suggérés",
-                confidence_score=75.0,
-                details={"adjustments": adjustments, "sample_size": {"signed": len(signed), "lost": len(lost)}},
+                confidence=75.0,
+                sample_size=len(signed) + len(lost)
             )
 
         return {
@@ -439,7 +445,7 @@ def track_ab_test_results() -> Dict[str, Any]:
     ab_test = retrieve("ab_test_active")
 
     if not ab_test:
-        return {"status": "no_active_test"}
+        return {"status": "no_test"}
 
     db = SessionLocal()
     try:
@@ -457,10 +463,15 @@ def track_ab_test_results() -> Dict[str, Any]:
 
         for variant in variants:
             # Emails envoyés avec ce variant
-            sent = db.query(EmailLog).filter(
+            # TODO: Tracking variant nécessite un champ dédié dans EmailLog
+            # Pour l'instant, estimation basée sur emails récents
+            total_sent = db.query(EmailLog).filter(
                 EmailLog.sent_at >= started_date,
-                EmailLog.notes.like(f"%variant:{variant}%")
+                EmailLog.email_type == "prospection"
             ).count()
+
+            # Distribution équitable entre variants
+            sent = total_sent // len(variants) if variants else 0
 
             # Réponses (approximation via prospects replied)
             # TODO: améliorer tracking variant → réponse
@@ -489,14 +500,20 @@ def track_ab_test_results() -> Dict[str, Any]:
             log_claude_learning(
                 learning_type="ab_test_completed",
                 pattern=f"Variant '{winner}' gagnant",
-                confidence_score=85.0,
-                details={"variants": variants, "results": results},
+                confidence=85.0,
+                sample_size=total_sent
             )
 
+        # Transform results into variant list format
+        variant_list = [
+            {"name": variant, **results[variant]}
+            for variant in variants
+        ]
+
         return {
-            "status": "tracking",
+            "status": "completed" if winner else "running",
             "started": started,
-            "variants": variants,
+            "variants": variant_list,
             "results": results,
             "total_sent": total_sent,
             "winner": winner,
@@ -518,19 +535,22 @@ def run_optimization_cycle() -> Dict[str, Any]:
     # 1. Apprendre des succès
     learn_from_successes()
 
-    # 2. Analyser prospects perdus
+    # 2. Analyser performance emails
+    email_perf = analyze_email_performance()
+
+    # 3. Analyser prospects perdus
     lost_analysis = analyze_lost_prospects()
 
-    # 3. Ajuster poids scoring
+    # 4. Ajuster poids scoring
     scoring_adjustments = adjust_scoring_weights()
 
-    # 4. Suivre A/B tests
+    # 5. Suivre A/B tests
     ab_results = track_ab_test_results()
 
-    # 5. Générer suggestions
+    # 6. Générer suggestions
     suggestions = suggest_optimizations()
 
-    # 6. Appliquer optimisations automatiques
+    # 7. Appliquer optimisations automatiques
     applied = []
     for suggestion in suggestions:
         if suggestion["priority"] == "high":
@@ -538,10 +558,19 @@ def run_optimization_cycle() -> Dict[str, Any]:
                 applied.append(suggestion)
 
     result = {
+        "status": "completed",
+        "timestamp": datetime.now().isoformat(),
         "suggestions_generated": len(suggestions),
         "optimizations_applied": len(applied),
+        "actions_taken": applied,
         "suggestions": suggestions,
         "applied": applied,
+        "analyses": {
+            "email_performance": email_perf,
+            "lost_prospects": lost_analysis,
+            "scoring_adjustments": scoring_adjustments,
+            "ab_test": ab_results,
+        },
         "lost_analysis": lost_analysis,
         "scoring_adjustments": scoring_adjustments,
         "ab_test_results": ab_results,
@@ -550,9 +579,7 @@ def run_optimization_cycle() -> Dict[str, Any]:
     # Log optimization cycle
     log_claude_optimization(
         optimization_type="full_cycle",
-        action_taken=f"{len(applied)} optimizations applied",
-        impact_expected=f"{len(suggestions)} suggestions generated",
-        details=result,
+        action=f"{len(applied)} optimizations applied, {len(suggestions)} suggestions generated"
     )
 
     logger.info(f"✅ Optimization cycle complete: {len(applied)} applied, {len(suggestions)} total")

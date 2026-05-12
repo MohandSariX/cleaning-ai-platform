@@ -327,9 +327,28 @@ curl -X POST http://localhost:8000/api/outreach/send-test
     - PHASE5_ARCHITECTURE.md (650 lignes)
     - docs/README.md (index général)
   - 5.6 : Dashboard v2 → v1 (dashboard moderne par défaut)
+- ✅ **Phase 6** : Devis avancés & templates personnalisables
+  - 6.1 : Analytics devis (5 endpoints : overview, by-type, by-montant, evolution, top-clients)
+  - 6.2 : Templates devis (table devis_templates, API CRUD, système variables {{var}}, rendu dynamique)
+  - 6.3 : Personnalisation tenant (logo_url, cgv_text, conditions_paiement, remise_max_pct)
+  - 6.4 : Signature électronique (HTML5 Canvas, Base64, signed_at, signed_by)
+  - 6.5 : Export PDF devis avec signature intégrée
+  - 6.6 : Tests Phase 6 (10 tests, 9/10 passent)
+  - 6.7 : Migration BDD complète (3 ALTER TABLE + CREATE TABLE + indexes)
+  - Page /devis/analytics (4 stats cards, 3 graphiques Recharts, sélecteur période)
+  - Page /devis/templates (CRUD complet, éditeur JSON variables)
+  - Page /devis/sign/[id] (Canvas signature touch+mouse, validation)
+
+- ✅ **Phase 6** : Devis avancés & templates personnalisables
+  - 6.1 : Analytics devis (overview, by-type, by-montant, evolution, top-clients)
+  - 6.2 : Templates devis CRUD + système variables {{var}}
+  - 6.3 : Personnalisation tenant (logo, CGV, conditions paiement, remise max)
+  - 6.4 : Signature électronique (HTML5 Canvas, stockage Base64)
+  - 6.5 : Export PDF devis avec signature
+  - 6.6 : Tests Phase 6 (10 tests, 9/10 passent)
+  - 6.7 : Migration BDD (devis.signature_*, tenant_config.*, devis_templates table)
 
 ### Prochaine phase — DÉVELOPPEMENT (société pas encore créée)
-- 🔜 **Phase 6** : Devis avancés & templates personnalisables
 - 🔜 **Phase 7** : Tests & optimisations (>80% coverage global)
 - 🔜 **Phase 8** : Site vitrine proprexis.fr (préparation)
 
