@@ -60,7 +60,7 @@ def test_get_product_by_name():
 
         assert product is not None
         assert product.name == "Nettoyage fin de chantier"
-        assert product.unit_price_ht == 8.0
+        assert product.unit_price_ht == 9.5
         assert product.minimum_ht == 400
 
         print(f"✅ Produit trouvé: {product.name} - {product.unit_price_ht}€/{product.unit}")

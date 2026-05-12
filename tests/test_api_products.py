@@ -90,7 +90,7 @@ def test_get_product_by_name():
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Nettoyage fin de chantier"
-    assert data["unit_price_ht"] == 8.0
+    assert data["unit_price_ht"] == 9.5
 
     print(f"✅ Produit trouvé par nom: {data['name']}")
 

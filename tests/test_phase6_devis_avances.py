@@ -2,11 +2,17 @@
 Tests Phase 6 — Devis avancés & Templates
 """
 import pytest
+import uuid
 from datetime import datetime, timedelta
 from app.models.devis import Devis
 from app.models.devis_template import DevisTemplate
 from app.models.client import Client
 from app.models.tenant import TenantConfig
+
+
+def unique_numero(prefix="DEV"):
+    """Génère un numéro unique pour éviter les conflits."""
+    return f"{prefix}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
 
 
 def test_devis_analytics_overview(db_session):
@@ -25,7 +31,7 @@ def test_devis_analytics_overview(db_session):
         status = "accepte" if i < 2 else "envoye" if i < 4 else "refuse"
         devis = Devis(
             client_id=client.id,
-            numero=f"DEV-2024-{i+1:03d}",
+            numero=unique_numero(),
             montant_ht=1000.0 * (i + 1),
             status=status
         )
@@ -33,10 +39,10 @@ def test_devis_analytics_overview(db_session):
 
     db_session.commit()
 
-    # Vérifier qu'on a bien créé les devis
-    total = db_session.query(Devis).count()
+    # Vérifier qu'on a bien créé les devis (filtrer par client_id pour isolation)
+    total = db_session.query(Devis).filter(Devis.client_id == client.id).count()
     assert total == 5
-    acceptes = db_session.query(Devis).filter(Devis.status == "accepte").count()
+    acceptes = db_session.query(Devis).filter(Devis.client_id == client.id, Devis.status == "accepte").count()
     assert acceptes == 2
 
     print(f"✅ Analytics: {total} devis, {acceptes} acceptés")
@@ -58,7 +64,7 @@ def test_devis_analytics_by_type(db_session):
     for i, service_type in enumerate(types):
         devis = Devis(
             client_id=client.id,
-            numero=f"DEV-TYPE-{i+1:03d}",
+            numero=unique_numero(),
             service_type=service_type,
             montant_ht=2000.0,
             status="accepte" if i % 2 == 0 else "refuse"
@@ -67,8 +73,11 @@ def test_devis_analytics_by_type(db_session):
 
     db_session.commit()
 
-    # Compter par type
-    bureaux_count = db_session.query(Devis).filter(Devis.service_type == "bureaux").count()
+    # Compter par type (filtrer par client_id pour isolation)
+    bureaux_count = db_session.query(Devis).filter(
+        Devis.client_id == client.id,
+        Devis.service_type == "bureaux"
+    ).count()
     assert bureaux_count == 2
 
     print(f"✅ Analytics by type: {bureaux_count} bureaux")
@@ -104,10 +113,13 @@ def test_devis_template_creation(db_session):
 
 def test_devis_template_default_logic(db_session):
     """Test logique is_default (un seul par catégorie/type)."""
+    # Utiliser une catégorie unique pour isolation
+    unique_cat = f"TEST_CAT_{uuid.uuid4().hex[:8]}"
+
     # Créer premier template default
     template1 = DevisTemplate(
         name="Template 1",
-        category="BTP",
+        category=unique_cat,
         type_prestation="bureaux",
         template_json={},
         is_default=True
@@ -118,7 +130,7 @@ def test_devis_template_default_logic(db_session):
     # Créer second template default même catégorie/type
     template2 = DevisTemplate(
         name="Template 2",
-        category="BTP",
+        category=unique_cat,
         type_prestation="bureaux",
         template_json={},
         is_default=True
@@ -131,7 +143,7 @@ def test_devis_template_default_logic(db_session):
     # Pour ce test, on vérifie juste qu'on peut créer les deux
 
     defaults = db_session.query(DevisTemplate).filter(
-        DevisTemplate.category == "BTP",
+        DevisTemplate.category == unique_cat,
         DevisTemplate.type_prestation == "bureaux",
         DevisTemplate.is_default == True
     ).all()
@@ -178,7 +190,7 @@ def test_devis_signature_fields(db_session):
     # Créer devis
     devis = Devis(
         client_id=client.id,
-        numero="DEV-SIGN-001",
+        numero=unique_numero("SIGN"),
         montant_ht=5000.0,
         status="envoye"
     )
@@ -242,7 +254,7 @@ def test_devis_by_montant_tranches(db_session):
     for i, montant in enumerate(montants):
         devis = Devis(
             client_id=client.id,
-            numero=f"DEV-M-{i+1:03d}",
+            numero=unique_numero(),
             montant_ht=montant,
             status="envoye"
         )
@@ -250,13 +262,20 @@ def test_devis_by_montant_tranches(db_session):
 
     db_session.commit()
 
-    # Compter par tranches
-    under_1k = db_session.query(Devis).filter(Devis.montant_ht < 1000).count()
+    # Compter par tranches (filtrer par client_id pour isolation)
+    under_1k = db_session.query(Devis).filter(
+        Devis.client_id == client.id,
+        Devis.montant_ht < 1000
+    ).count()
     between_1k_3k = db_session.query(Devis).filter(
+        Devis.client_id == client.id,
         Devis.montant_ht >= 1000,
         Devis.montant_ht < 3000
     ).count()
-    over_10k = db_session.query(Devis).filter(Devis.montant_ht >= 10000).count()
+    over_10k = db_session.query(Devis).filter(
+        Devis.client_id == client.id,
+        Devis.montant_ht >= 10000
+    ).count()
 
     assert under_1k == 1
     assert between_1k_3k == 1
@@ -285,7 +304,7 @@ def test_devis_top_clients(db_session):
     for i, client in enumerate(clients):
         devis = Devis(
             client_id=client.id,
-            numero=f"DEV-TOP-{i+1:03d}",
+            numero=unique_numero(),
             montant_ht=ca_per_client[i],
             status="accepte"
         )

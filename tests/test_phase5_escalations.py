@@ -45,7 +45,8 @@ def test_check_devis_need_escalation_under_threshold(db_session):
     devis = Devis(
         client_id=client.id,
         montant_ht=5000.0,
-        montant_ttc=6000.0,
+        # montant_ttc calculé automatiquement
+        # montant_ttc=6000.0,
         status="accepte"
     )
 
@@ -71,7 +72,8 @@ def test_check_devis_need_escalation_above_threshold(db_session):
     devis = Devis(
         client_id=client.id,
         montant_ht=15000.0,
-        montant_ttc=18000.0,
+        # montant_ttc calculé automatiquement
+        # montant_ttc=18000.0,
         status="accepte"
     )
 
@@ -88,7 +90,7 @@ def test_check_discount_need_escalation_small(db_session):
     config = {"discount_auto_max_pct": 15}
 
     needs_escalation, reason = check_discount_need_escalation(
-        discount_percent=10,
+        discount_pct=10,
         config=config
     )
 
@@ -101,7 +103,7 @@ def test_check_discount_need_escalation_large(db_session):
     config = {"discount_auto_max_pct": 15}
 
     needs_escalation, reason = check_discount_need_escalation(
-        discount_percent=20,
+        discount_pct=20,
         config=config
     )
 
@@ -114,8 +116,11 @@ def test_create_escalation(db_session):
     """Test création escalation."""
     escalation = create_escalation(
         db=db_session,
+        tenant_id=1,  # Tenant test
+        title="Devis montant élevé",
+        description="Devis de 15000€ HT nécessite validation",
         decision_type="devis_montant_eleve",
-        context={
+        context_data={
             "devis_id": 123,
             "montant_ht": 15000,
             "client": "Big Corp"
@@ -124,7 +129,7 @@ def test_create_escalation(db_session):
         ia_recommendation="approve",
         ia_confidence=0.85,
         ia_reasoning="Client fiable, montant cohérent avec taille entreprise",
-        auto_resolve_minutes=240
+        auto_resolve_hours=4  # 240 minutes = 4 heures
     )
 
     assert escalation.id is not None
@@ -142,17 +147,20 @@ def test_escalation_auto_resolve_timing(db_session):
     """Test timing auto-resolve."""
     escalation = create_escalation(
         db=db_session,
+        tenant_id=1,
+        title="Test timing",
+        description="Test auto-resolve timing",
         decision_type="test",
-        context={},
+        context_data={},
         priority="low",
-        auto_resolve_minutes=60
+        auto_resolve_hours=1  # 1 heure
     )
 
     # Vérifier que auto_resolve_at est dans le futur
-    assert escalation.auto_resolve_at > datetime.now()
+    assert escalation.auto_resolve_at > datetime.utcnow()
 
-    # Vérifier que c'est bien dans ~60 minutes
-    time_diff = (escalation.auto_resolve_at - datetime.now()).total_seconds() / 60
+    # Vérifier que c'est bien dans ~1 heure (60 minutes)
+    time_diff = (escalation.auto_resolve_at - datetime.utcnow()).total_seconds() / 60
     assert 58 <= time_diff <= 62  # Marge de 2min
 
     print(f"✅ Auto-resolve dans {time_diff:.1f} minutes")
@@ -162,10 +170,13 @@ def test_escalation_no_auto_resolve(db_session):
     """Test escalation sans auto-resolve."""
     escalation = create_escalation(
         db=db_session,
+        tenant_id=1,
+        title="Test manual",
+        description="Test escalation sans auto-resolve",
         decision_type="test_manual",
-        context={},
+        context_data={},
         priority="high",
-        auto_resolve_minutes=None
+        auto_resolve_hours=None
     )
 
     assert escalation.auto_resolve_at is None
@@ -179,8 +190,11 @@ def test_escalation_priorities(db_session):
     for priority in priorities:
         escalation = create_escalation(
             db=db_session,
+            tenant_id=1,
+            title=f"Test {priority}",
+            description=f"Test escalation priorité {priority}",
             decision_type=f"test_{priority}",
-            context={},
+            context_data={},
             priority=priority
         )
 
@@ -203,20 +217,25 @@ def test_escalation_with_full_context(db_session):
 
     escalation = create_escalation(
         db=db_session,
+        tenant_id=1,
+        title="Devis montant élevé avec contexte complet",
+        description="Devis 25000€ HT pour Mega Corp",
         decision_type="devis_montant_eleve",
-        context=full_context,
+        context_data=full_context,
         priority="high",
         ia_recommendation="approve",
         ia_confidence=0.92,
         ia_reasoning="Excellent prospect (score 85), BTP Paris, historique positif",
-        auto_resolve_minutes=180
+        auto_resolve_hours=3  # 180 minutes = 3 heures
     )
 
-    assert escalation.context == full_context
-    assert "client" in escalation.context
-    assert "montant_ht" in escalation.context
+    # context_data est stocké en JSON, vérifions via parsing
+    import json
+    context = json.loads(escalation.context_data) if escalation.context_data else {}
+    assert "client" in context
+    assert "montant_ht" in context
 
-    print(f"✅ Escalation avec contexte complet: {len(escalation.context)} champs")
+    print(f"✅ Escalation avec contexte complet: {len(context)} champs")
 
 
 def test_configurable_thresholds():
