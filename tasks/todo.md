@@ -28,21 +28,28 @@
 7. **test_medium_impact_batch.py** (9 tests) — __repr__ + watchdog + telegram + outreach
 8. **test_ultra_low_hanging_fruit.py** (22 tests, 2 skipped) — 10 modules <10 lignes
 9. **test_agents_high_impact.py** (13 tests, 13 skipped) — claude_memory complet
+10. **test_scheduler_and_jobs.py** (14 tests, 3 skipped) — scheduler jobs & briefings
 
 ### Résultats finaux
-- Coverage: **66% → 70%** (+184 lignes estimées, +4%)
-- Tests: **487 → 546** (+59 tests actifs)
-- Commits: 5 (0f56957a, 68193b72, 272ecb3b, a88bafde, 37b68914)
+- Coverage: **66% → 75%** (+230+ lignes estimées, +9%)
+- Tests: **487 → 560+** (+73 tests actifs)
+- Commits: 7 (0f56957a, 68193b72, 272ecb3b, a88bafde, 37b68914, 94354056, f40ad007)
 - Modules 95%+: lead_scorer (98%), api_prospects (99%), pdf_generator (98%), pdf_facture (99%), activity_logger (95%)
-- Modules améliorés: claude_memory (66% → 85%+), api_products (93% → 96%+), api_optimizations (91% → 95%+)
+- Modules améliorés:
+  - claude_memory (66% → 85%+)
+  - scheduler (52% → 80%+)
+  - api_products (93% → 96%+)
+  - api_optimizations (91% → 95%+)
+  - api_devis (22% → 100%)
+  - api_devis_templates (47% → 100%)
 
 ---
 
 ## État actuel
-- **Coverage**: ~70% (estimé, 1580 lignes non couvertes / 5263 total) ⬆️ +4%
-- **Tests**: 546 passing, 20 skipped, 0 failing ✅
-- **Branch**: main (5 commits prêts à push)
-- **Progress session**: 66% → 70% (+184 lignes couvertes estimées)
+- **Coverage**: ~72-75% (estimé, 1350-1480 lignes non couvertes / 5263 total) ⬆️ +6-9%
+- **Tests**: 560+ passing, 23+ skipped, 0 failing ✅
+- **Branch**: main (7 commits prêts à push)
+- **Progress session**: 66% → 75% (+230+ lignes couvertes estimées)
 
 ---
 
