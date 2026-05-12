@@ -54,6 +54,7 @@ jobs:
         echo "PAPPERS_API_KEY=test_key" >> $GITHUB_ENV
         echo "TELEGRAM_BOT_TOKEN=test_token" >> $GITHUB_ENV
         echo "TELEGRAM_CHAT_ID=123456789" >> $GITHUB_ENV
+        echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
     - name: Wait for PostgreSQL
       run: |
