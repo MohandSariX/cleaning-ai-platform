@@ -25,18 +25,21 @@
    - api_email_finder, api_outreach, api_watchdog
    - api_tenants, api_scraping, email_templates
 
-### Résultats
-- Coverage: **66% → 68%** (+68 lignes)
-- Tests: **487 → 502** (+15 tests)
-- Modules 95%+: lead_scorer (98%), api_prospects (99%), pdf_generator (98%), pdf_facture (99%)
+7. **test_medium_impact_batch.py** (9 tests) — __repr__ + watchdog + telegram + outreach
+
+### Résultats finaux
+- Coverage: **66% → 68%** (+71 lignes, -2%)
+- Tests: **487 → 511** (+24 tests)
+- Commits: 2 (0f56957a, 68193b72)
+- Modules 95%+: lead_scorer (98%), api_prospects (99%), pdf_generator (98%), pdf_facture (99%), activity_logger (95%)
 
 ---
 
 ## État actuel
-- **Coverage**: 68% (1696 lignes non couvertes / 5263 total) ⬆️ +7%
-- **Tests**: 502 passing, 5 skipped, 0 failing ✅
-- **Branch**: main
-- **Progress**: 66% → 68% (+68 lignes couvertes en cette session)
+- **Coverage**: 68% (1693 lignes non couvertes / 5263 total) ⬆️ +2%
+- **Tests**: 511 passing, 5 skipped, 0 failing ✅
+- **Branch**: main (2 commits prêts à push)
+- **Progress session**: 66% → 68% (+71 lignes couvertes)
 
 ---
 
