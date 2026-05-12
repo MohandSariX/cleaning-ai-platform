@@ -98,8 +98,6 @@ def polling_loop():
     Boucle principale du polling — tourne en arrière-plan.
     Appelle getUpdates en continu et traite chaque message.
     """
-    global polling_active, last_update_id
-
     logger.info("🚀 Telegram polling démarré")
 
     while polling_active:

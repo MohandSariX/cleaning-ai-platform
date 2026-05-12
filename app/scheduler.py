@@ -226,13 +226,13 @@ def run_nightly_scrape():
         run_lead_scoring()
         _log("✅ Scoring terminé")
         _log(f"🎉 Nuit terminée ! Dept {dept} complet.")
-        log_scraping(dept, dept_names.get(dept, dept), scheduler_status["stats"].get("prospects_scraped", 0), scheduler_status["stats"].get("queries_done", 0))
 
         # Notification Telegram fin de scraping
         dept_names = {
             "94": "Val-de-Marne", "93": "Seine-Saint-Denis", "92": "Hauts-de-Seine",
             "77": "Seine-et-Marne", "75": "Paris", "91": "Essonne",
         }
+        log_scraping(dept, dept_names.get(dept, dept), scheduler_status["stats"].get("prospects_scraped", 0), scheduler_status["stats"].get("queries_done", 0))
         notify_scraping_termine(dept, dept_names.get(dept, dept), scheduler_status["stats"])
 
         # Notification nouveaux prospects haute priorité

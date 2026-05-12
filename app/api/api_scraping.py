@@ -20,7 +20,6 @@ class ScrapeParams(BaseModel):
 
 
 def _run_scrape(params: ScrapeParams):
-    global scrape_status
     try:
         scrape_status["log"].append(f"🚀 Démarrage — {len(params.locations)} ville(s), {params.max_pages} page(s)/ville")
         scrape_status["log"].append(f"🔍 Recherche : « {params.query} »")
@@ -67,7 +66,6 @@ def run_scoring():
     Système 300 points : joignabilité (80) + identité (60) + potentiel (80) + signaux (80).
     Normalise à /100 pour stockage.
     """
-    global scrape_status
     if scrape_status["running"]:
         raise HTTPException(status_code=409, detail="Un scraping est déjà en cours")
 

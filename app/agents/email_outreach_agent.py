@@ -97,7 +97,7 @@ def send_one_prospection_email(prospect: Prospect, db: Session) -> bool:
             prospect.status = "email_generated"
             prospect.last_contacted = datetime.now()
             logger.info(f"✅ Email envoyé à {prospect.company_name} ({prospect.email})")
-            log_email_sent(prospect.id, prospect.company_name, prospect.city or "", email_type, objet, prospect.lead_score)
+            log_email_sent(prospect.id, prospect.company_name, prospect.city or "", "prospection", objet, prospect.lead_score)
         else:
             logger.warning(f"❌ Échec envoi à {prospect.company_name}")
 
